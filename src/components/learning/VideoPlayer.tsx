@@ -32,29 +32,29 @@ export default function VideoPlayer({ videoId: rawVideoId }: VideoPlayerProps) {
 
     if (!videoId) {
         return (
-            <div className="relative aspect-video bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 flex items-center justify-center text-zinc-500">
+            <div className="relative aspect-video bg-zinc-50 rounded-2xl overflow-hidden border border-zinc-200 flex items-center justify-center text-zinc-400 italic text-sm">
                 No video available
             </div>
         );
     }
 
     return (
-        <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-zinc-800">
+        <div className="relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden border border-zinc-200">
             {/* Loading Overlay */}
             {!isLoaded && !hasError && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-zinc-900">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-zinc-50">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                 </div>
             )}
 
             {/* Error Overlay */}
             {hasError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-zinc-900 text-center p-4">
-                    <p className="text-red-400 font-medium mb-2">Unable to load video</p>
-                    <p className="text-zinc-500 text-sm">Target ID: {videoId}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-zinc-50 text-center p-4">
+                    <p className="text-red-500 font-medium mb-2">Unable to load video</p>
+                    <p className="text-zinc-400 text-xs">Target ID: {videoId}</p>
                     <button
                         onClick={() => window.location.reload()}
-                        className="mt-4 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-white transition-colors"
+                        className="mt-4 px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg text-sm text-zinc-900 transition-colors shadow-sm"
                     >
                         Retry
                     </button>

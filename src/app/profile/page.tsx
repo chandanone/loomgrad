@@ -1,3 +1,4 @@
+
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -75,16 +76,16 @@ export default async function ProfilePage() {
         .slice(0, 3);
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white pt-32 pb-20 px-6 transition-colors duration-300">
+        <div className="min-h-screen bg-white text-zinc-900 pt-32 pb-20 px-6 transition-colors duration-300">
             <div className="max-w-6xl mx-auto">
                 {/* Header / Profile Card */}
-                <div className="relative mb-12 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 md:p-12 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="relative mb-12 bg-zinc-50 border border-zinc-200 rounded-3xl p-8 md:p-12 overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
                     <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                         {/* Avatar */}
                         <div className="relative group">
-                            <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-zinc-800 shadow-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                            <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white shadow-2xl flex items-center justify-center bg-zinc-100">
                                 {user.image ? (
                                     <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
                                 ) : (
@@ -126,7 +127,7 @@ export default async function ProfilePage() {
                         <div className="flex gap-3">
                             <Link
                                 href="/settings"
-                                className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-zinc-900/10 dark:shadow-none"
+                                className="px-6 py-2.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-zinc-900/10"
                             >
                                 Edit Profile
                             </Link>
@@ -136,7 +137,7 @@ export default async function ProfilePage() {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                    <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
+                    <div className="p-6 bg-white border border-zinc-200 rounded-2xl flex items-center gap-4">
                         <div className="p-3 bg-blue-500/10 rounded-xl">
                             <BookOpen className="w-6 h-6 text-blue-500" />
                         </div>
@@ -145,7 +146,7 @@ export default async function ProfilePage() {
                             <h3 className="text-xl font-bold">{enrolledCoursesCount} Courses</h3>
                         </div>
                     </div>
-                    <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
+                    <div className="p-6 bg-white border border-zinc-200 rounded-2xl flex items-center gap-4">
                         <div className="p-3 bg-green-500/10 rounded-xl">
                             <CheckCircle2 className="w-6 h-6 text-green-500" />
                         </div>
@@ -154,7 +155,7 @@ export default async function ProfilePage() {
                             <h3 className="text-xl font-bold">{completedLessons} Lessons</h3>
                         </div>
                     </div>
-                    <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
+                    <div className="p-6 bg-white border border-zinc-200 rounded-2xl flex items-center gap-4">
                         <div className="p-3 bg-purple-500/10 rounded-xl">
                             <Award className="w-6 h-6 text-purple-500" />
                         </div>
@@ -163,7 +164,7 @@ export default async function ProfilePage() {
                             <h3 className="text-xl font-bold">{user.certificates.length} Earned</h3>
                         </div>
                     </div>
-                    <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
+                    <div className="p-6 bg-white border border-zinc-200 rounded-2xl flex items-center gap-4">
                         <div className="p-3 bg-amber-500/10 rounded-xl">
                             <LayoutDashboard className="w-6 h-6 text-amber-500" />
                         </div>
@@ -188,10 +189,10 @@ export default async function ProfilePage() {
                                     <Link
                                         key={item.course.id}
                                         href={`/courses/${item.course.slug}`}
-                                        className="group block p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 transition-all hover:shadow-xl hover:shadow-blue-500/5"
+                                        className="group block p-6 bg-white border border-zinc-200 rounded-2xl hover:border-blue-500/50 transition-all hover:shadow-xl hover:shadow-blue-500/5"
                                     >
                                         <div className="flex flex-col md:flex-row items-center gap-6">
-                                            <div className="w-full md:w-40 aspect-video rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex-shrink-0">
+                                            <div className="w-full md:w-40 aspect-video rounded-xl overflow-hidden bg-zinc-100 flex-shrink-0">
                                                 {item.course.thumbnail ? (
                                                     <img src={item.course.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                                 ) : (
@@ -205,7 +206,7 @@ export default async function ProfilePage() {
                                                 <p className="text-sm text-zinc-500 mb-4 line-clamp-1">Last lesson: {item.lastLesson.title}</p>
 
                                                 <div className="flex items-center gap-4">
-                                                    <div className="flex-grow h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                                    <div className="flex-grow h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                                                         <div
                                                             className="h-full bg-blue-600 rounded-full"
                                                             style={{ width: `${Math.min(100, (item.completedCount / 10) * 100)}%` }}
@@ -216,7 +217,7 @@ export default async function ProfilePage() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="w-10 h-10 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                 <ExternalLink className="w-4 h-4" />
                                             </div>
                                         </div>
@@ -224,8 +225,8 @@ export default async function ProfilePage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-12 text-center bg-zinc-50 dark:bg-zinc-900/30 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
-                                <BookOpen className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-4" />
+                            <div className="p-12 text-center bg-zinc-50 border border-dashed border-zinc-200 rounded-3xl">
+                                <BookOpen className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
                                 <h3 className="font-bold text-lg mb-2">No active courses</h3>
                                 <p className="text-zinc-500 mb-6 text-sm">Explore our catalog and start your learning journey today!</p>
                                 <Link href="/courses" className="text-blue-500 font-bold text-sm hover:underline">Browse Courses →</Link>
@@ -245,7 +246,7 @@ export default async function ProfilePage() {
                                 user.codeSubmissions.map((sub) => (
                                     <div
                                         key={sub.id}
-                                        className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl"
+                                        className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl"
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${sub.status === "PASSED" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"

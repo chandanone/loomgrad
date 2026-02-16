@@ -30,23 +30,24 @@ export default function GrantAccessForm({ courses }: { courses: { id: string, ti
         <form id="grant-form" action={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">User Email</label>
+                <label className="block text-sm font-medium text-zinc-500 mb-2">User Email</label>
                 <input
                     name="email"
                     type="email"
                     required
                     placeholder="student@example.com"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-zinc-900 focus:outline-none focus:border-blue-500 transition-colors"
                 />
             </div>
 
             {/* Course */}
             <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Select Course</label>
+                <label className="block text-sm font-medium text-zinc-500 mb-2">Select Course</label>
                 <select
                     name="courseId"
                     required
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-zinc-900 focus:outline-none focus:border-blue-500 transition-colors appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25rem' }}
                 >
                     <option value="">-- Choose a Course --</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -55,28 +56,28 @@ export default function GrantAccessForm({ courses }: { courses: { id: string, ti
 
             {/* Duration */}
             <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Duration (Days)</label>
+                <label className="block text-sm font-medium text-zinc-500 mb-2">Duration (Days)</label>
                 <input
                     name="days"
                     type="number"
                     required
                     min="1"
                     defaultValue="30"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-zinc-900 focus:outline-none focus:border-blue-500 transition-colors"
                 />
             </div>
 
             {/* Submit */}
             <button
                 disabled={isPending}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
             >
                 {isPending ? <Loader2 className="animate-spin w-5 h-5" /> : "Grant Access"}
             </button>
 
             {/* Message */}
             {message && (
-                <div className={`p-4 rounded-xl flex items-center gap-3 ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className={`p-4 rounded-xl flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                     {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                     {message.text}
                 </div>

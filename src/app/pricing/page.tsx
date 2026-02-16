@@ -1,3 +1,4 @@
+
 import { Check, Zap, Rocket, Star } from "lucide-react";
 import Link from "next/link";
 
@@ -55,14 +56,14 @@ const tiers = [
 
 export default function PricingPage() {
     return (
-        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-white pt-32 pb-20 px-6 transition-colors duration-300">
+        <div className="min-h-screen bg-white text-zinc-900 pt-32 pb-20 px-6 transition-colors duration-300">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
-                    <h2 className="text-blue-600 dark:text-blue-500 font-bold tracking-widest text-xs uppercase mb-4">Investment in Yourself</h2>
-                    <h1 className="text-5xl md:text-6xl font-bold tracking-tighter mb-6 bg-gradient-to-b from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-500 bg-clip-text text-transparent">
+                    <h2 className="text-blue-600 font-bold tracking-widest text-xs uppercase mb-4">Investment in Yourself</h2>
+                    <h1 className="text-5xl md:text-6xl font-bold tracking-tighter mb-6 bg-gradient-to-b from-zinc-900 to-zinc-500 bg-clip-text text-transparent">
                         Choose Your Learning Path
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400 text-lg max-w-2xl mx-auto">
+                    <p className="text-zinc-600 text-lg max-w-2xl mx-auto">
                         Unlock premium content, interactive coding labs, and industry-recognized certificates with a plan that fits your goals.
                     </p>
                 </div>
@@ -72,8 +73,8 @@ export default function PricingPage() {
                         <div
                             key={tier.name}
                             className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${tier.highlight
-                                ? "bg-zinc-50 dark:bg-zinc-900 border-blue-500/50 shadow-2xl shadow-blue-500/10 scale-105 z-10"
-                                : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-800"
+                                ? "bg-zinc-50 border-blue-500/50 shadow-2xl shadow-blue-500/10 scale-105 z-10"
+                                : "bg-white border-zinc-200 hover:border-zinc-300"
                                 }`}
                         >
                             {tier.highlight && (
@@ -83,7 +84,7 @@ export default function PricingPage() {
                             )}
 
                             <div className="mb-6">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.highlight ? "bg-blue-600/10 text-blue-500 shadow-inner" : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400"
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.highlight ? "bg-blue-600/10 text-blue-500 shadow-inner" : "bg-zinc-100 text-zinc-500"
                                     }`}>
                                     <tier.icon className="w-6 h-6" />
                                 </div>
@@ -92,15 +93,15 @@ export default function PricingPage() {
                                     <span className="text-4xl font-bold">{tier.price}</span>
                                     {tier.period && <span className="text-zinc-500 text-sm font-medium">{tier.period}</span>}
                                 </div>
-                                <p className="text-zinc-500 dark:text-zinc-500 text-sm mt-4 leading-relaxed">
+                                <p className="text-zinc-500 text-sm mt-4 leading-relaxed">
                                     {tier.description}
                                 </p>
                             </div>
 
                             <ul className="space-y-4 mb-10 flex-grow">
                                 {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-start gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-                                        <div className={`mt-0.5 rounded-full p-0.5 ${tier.highlight ? "bg-blue-500/20 text-blue-500" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
+                                    <li key={feature} className="flex items-start gap-3 text-sm text-zinc-600">
+                                        <div className={`mt-0.5 rounded-full p-0.5 ${tier.highlight ? "bg-blue-500/20 text-blue-500" : "bg-zinc-100 text-zinc-400"
                                             }`}>
                                             <Check className="w-3 h-3" />
                                         </div>
@@ -112,7 +113,7 @@ export default function PricingPage() {
                             <button
                                 className={`w-full py-4 rounded-xl font-bold text-sm transition-all active:scale-95 ${tier.highlight
                                     ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
-                                    : "bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-zinc-200"
+                                    : "bg-zinc-900 text-white hover:bg-black"
                                     }`}
                             >
                                 {tier.buttonText}
@@ -121,14 +122,14 @@ export default function PricingPage() {
                     ))}
                 </div>
 
-                <div className="mt-20 p-10 rounded-3xl bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="mt-20 p-10 rounded-3xl bg-zinc-50 border border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div>
                         <h4 className="text-xl font-bold mb-2">Need a custom plan for your team?</h4>
-                        <p className="text-zinc-600 dark:text-zinc-500 text-sm">We offer enterprise solutions for organizations and universities.</p>
+                        <p className="text-zinc-600 text-sm">We offer enterprise solutions for organizations and universities.</p>
                     </div>
                     <Link
                         href="mailto:business@loomgrad.com"
-                        className="px-8 py-4 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all"
+                        className="px-8 py-4 bg-white text-zinc-900 border border-zinc-200 rounded-xl font-bold text-sm hover:bg-zinc-50 transition-all"
                     >
                         Contact Sales
                     </Link>

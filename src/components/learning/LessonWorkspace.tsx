@@ -46,13 +46,13 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
             {/* Panel Toggle Bar */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-900 bg-zinc-950/50 shrink-0">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 bg-zinc-50 shrink-0">
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleContent}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showContent
-                            ? "bg-blue-600/10 text-blue-400 border border-blue-500/20"
-                            : "bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
                             }`}
                     >
                         {showContent ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeftOpen className="w-3.5 h-3.5" />}
@@ -62,8 +62,8 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                     <button
                         onClick={toggleSandbox}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showSandbox
-                            ? "bg-purple-600/10 text-purple-400 border border-purple-500/20"
-                            : "bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300"
+                            ? "bg-purple-600 text-white shadow-sm"
+                            : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
                             }`}
                     >
                         {showSandbox ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
@@ -77,7 +77,7 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                         <>
                             <button
                                 onClick={() => setShowSandbox(false)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300 transition-all"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
                                 title="Focus on Lesson"
                             >
                                 <Maximize2 className="w-3.5 h-3.5" />
@@ -85,7 +85,7 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                             </button>
                             <button
                                 onClick={() => setShowContent(false)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 text-zinc-500 border border-zinc-800 hover:text-zinc-300 transition-all"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
                                 title="Focus on Sandbox"
                             >
                                 <Maximize2 className="w-3.5 h-3.5" />
@@ -102,18 +102,18 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                 {/* Left Side: Video & Content */}
                 {showContent && (
                     <div
-                        className={`flex flex-col overflow-y-auto bg-zinc-950/30 ${showSandbox ? "lg:w-1/2 lg:border-r border-zinc-900" : "w-full"
-                            } ${!showSandbox ? "" : "h-1/2 lg:h-full border-b lg:border-b-0 border-zinc-900"}`}
+                        className={`flex flex-col overflow-y-auto bg-white ${showSandbox ? "lg:w-1/2 lg:border-r border-zinc-100" : "w-full"
+                            } ${!showSandbox ? "" : "h-1/2 lg:h-full border-b lg:border-b-0 border-zinc-100"}`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
                             {/* Media Section */}
                             <div className="relative">
                                 {showPaywall ? (
-                                    <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 flex items-center justify-center">
+                                    <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center">
                                         <Paywall />
                                         <img
                                             src={courseThumbnail || ""}
-                                            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-20"
+                                            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-10"
                                             alt="blurred background"
                                         />
                                     </div>
@@ -124,22 +124,22 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
 
                             {/* Lesson Info */}
                             <div>
-                                <div className="flex items-center gap-2 text-blue-500 font-bold text-xs uppercase tracking-widest mb-2">
+                                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest mb-2">
                                     <Milestone className="w-4 h-4" />
                                     Lesson Module
                                 </div>
-                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4">{lesson.title}</h1>
+                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 text-zinc-900">{lesson.title}</h1>
 
-                                <div className="flex gap-4 mb-6 lg:mb-8 border-b border-zinc-900">
-                                    <button className="pb-3 lg:pb-4 text-sm font-bold border-b-2 border-blue-500 text-white flex items-center gap-2">
+                                <div className="flex gap-4 mb-6 lg:mb-8 border-b border-zinc-100">
+                                    <button className="pb-3 lg:pb-4 text-sm font-bold border-b-2 border-blue-600 text-zinc-900 flex items-center gap-2">
                                         <FileText className="w-4 h-4" /> Notes
                                     </button>
-                                    <button className="pb-3 lg:pb-4 text-sm font-bold text-zinc-500 hover:text-white transition-colors flex items-center gap-2">
+                                    <button className="pb-3 lg:pb-4 text-sm font-bold text-zinc-400 hover:text-zinc-600 transition-colors flex items-center gap-2">
                                         <BookOpen className="w-4 h-4" /> Resources
                                     </button>
                                 </div>
 
-                                <div className="prose prose-invert max-w-none prose-p:text-zinc-400 prose-headings:text-white prose-sm lg:prose-base">
+                                <div className="prose prose-zinc max-w-none prose-p:text-zinc-600 prose-headings:text-zinc-900 prose-sm lg:prose-base">
                                     {lesson.description || "No specific instructions for this lesson. Watch the video and follow along in the practice editor."}
                                 </div>
                             </div>
@@ -151,14 +151,14 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                 {showSandbox && (
                     <div
                         className={`flex flex-col ${showContent ? "lg:w-1/2" : "w-full"
-                            } ${showContent ? "h-1/2 lg:h-full" : "h-full"}`}
+                            } ${showContent ? "h-1/2 lg:h-full" : "h-full"} bg-zinc-50`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
-                            <div className="flex items-center gap-2 text-purple-500 font-bold text-xs uppercase tracking-widest mb-3 lg:mb-4">
+                            <div className="flex items-center gap-2 text-purple-600 font-bold text-xs uppercase tracking-widest mb-3 lg:mb-4">
                                 <Code2 className="w-4 h-4" />
                                 Practice Sandbox
                             </div>
-                            <div className="flex-1 bg-zinc-900 rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 min-h-0">
+                            <div className="flex-1 bg-zinc-900 rounded-2xl lg:rounded-3xl overflow-hidden shadow-xl border border-zinc-800 min-h-0">
                                 <CodeEditor
                                     initialCode={lesson.starterCode || `// Practice: ${lesson.title}\n\nfunction solution() {\n  // Type your code here\n}\n`}
                                     language="javascript"

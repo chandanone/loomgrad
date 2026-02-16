@@ -63,7 +63,7 @@ export default function CourseActions({ courseId, isPublished, slug }: CourseAct
         <div className="flex items-center gap-2">
             <Link
                 href={`/courses/${slug}`}
-                className="p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+                className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 transition-colors"
                 title="View Course"
             >
                 <ExternalLink className="w-5 h-5" />
@@ -73,8 +73,8 @@ export default function CourseActions({ courseId, isPublished, slug }: CourseAct
                 onClick={handleToggleStatus}
                 disabled={loading}
                 className={`p-2.5 rounded-xl transition-colors ${isPublished
-                        ? 'bg-zinc-800 hover:bg-zinc-700 text-yellow-500'
-                        : 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 border border-blue-500/20'
+                    ? 'bg-zinc-100 hover:bg-zinc-200 text-amber-600'
+                    : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100'
                     }`}
                 title={isPublished ? "Unpublish" : "Publish"}
             >
@@ -84,7 +84,7 @@ export default function CourseActions({ courseId, isPublished, slug }: CourseAct
             <button
                 onClick={handleDelete}
                 disabled={loading}
-                className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-colors"
+                className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition-colors"
                 title="Delete Course"
             >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}

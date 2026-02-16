@@ -26,14 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-black text-zinc-900 dark:text-white transition-colors duration-300 selection:bg-blue-500 selection:text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-zinc-900 transition-colors duration-300 selection:bg-blue-500 selection:text-white`}
       >
         <Providers>
           <Navbar />
           {children}
-          <Toaster position="bottom-right" theme="system" />
+          <Toaster position="bottom-right" theme="light" />
         </Providers>
       </body>
     </html>

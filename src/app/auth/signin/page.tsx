@@ -44,57 +44,57 @@ export default function SignInPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-black to-black">
+        <div className="min-h-screen bg-white flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
             <div className="w-full max-w-md">
                 <div className="text-center mb-10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
                         <div className="bg-blue-600 p-2 rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-600/20">
                             <BookOpen className="w-6 h-6 text-white" />
                         </div>
-                        <span className="font-bold text-2xl tracking-tighter text-white">
-                            Loom<span className="text-blue-500">Grad</span>
+                        <span className="font-bold text-2xl tracking-tighter text-zinc-900">
+                            Loom<span className="text-blue-600">Grad</span>
                         </span>
                     </Link>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome Back</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Welcome Back</h1>
                     <p className="text-zinc-500">Sign in to continue your learning journey.</p>
                 </div>
 
-                <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 p-8 rounded-3xl shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8">
+                <div className="bg-white border border-zinc-200 p-8 rounded-3xl shadow-xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-500 text-sm animate-in fade-in zoom-in">
+                            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3 text-red-600 text-sm animate-in fade-in zoom-in">
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                                 {error}
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-zinc-400 ml-1">Email Address</label>
+                            <label className="text-sm font-medium text-zinc-600 ml-1">Email Address</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-3.5 w-4 h-4 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                                <Mail className="absolute left-4 top-3.5 w-4 h-4 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
                                 <input
                                     required
                                     type="email"
                                     name="email"
                                     placeholder="name@example.com"
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                    className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 transition-all"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <label className="text-sm font-medium text-zinc-400">Password</label>
-                                <Link href="#" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">Forgot password?</Link>
+                                <label className="text-sm font-medium text-zinc-600">Password</label>
+                                <Link href="#" className="text-xs text-blue-600 hover:text-blue-700 transition-colors">Forgot password?</Link>
                             </div>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-3.5 w-4 h-4 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                                <Lock className="absolute left-4 top-3.5 w-4 h-4 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
                                 <input
                                     required
                                     type="password"
                                     name="password"
                                     placeholder="••••••••"
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                    className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-11 pr-4 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 transition-all"
                                 />
                             </div>
                         </div>
@@ -102,7 +102,7 @@ export default function SignInPage() {
                         <button
                             disabled={isLoading}
                             type="submit"
-                            className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group active:scale-[0.98]"
+                            className="w-full bg-zinc-900 text-white font-bold py-4 rounded-2xl hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group active:scale-[0.98] shadow-lg shadow-zinc-900/10"
                         >
                             {isLoading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -114,17 +114,17 @@ export default function SignInPage() {
 
                     <div className="relative my-8">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-zinc-800"></div>
+                            <div className="w-full border-t border-zinc-100"></div>
                         </div>
-                        <div className="relative flex justify-center text-xs uppercase tracking-widest text-zinc-600">
-                            <span className="bg-[#0b0b0b] px-4">Or continue with</span>
+                        <div className="relative flex justify-center text-xs uppercase tracking-widest text-zinc-400">
+                            <span className="bg-white px-4">Or continue with</span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
                         <button
                             onClick={() => signIn("google", { callbackUrl: "/" })}
-                            className="bg-zinc-950 border border-zinc-800 text-white font-medium py-3.5 rounded-2xl hover:bg-zinc-900 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                            className="bg-zinc-50 border border-zinc-200 text-zinc-900 font-medium py-3.5 rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24">
                                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -138,7 +138,7 @@ export default function SignInPage() {
 
                     <p className="mt-8 text-center text-sm text-zinc-500">
                         Don't have an account?{" "}
-                        <Link href="/auth/signup" className="text-blue-500 font-medium hover:text-blue-400 transition-colors">Sign up</Link>
+                        <Link href="/auth/signup" className="text-blue-600 font-medium hover:text-blue-700 transition-colors">Sign up</Link>
                     </p>
                 </div>
             </div>
