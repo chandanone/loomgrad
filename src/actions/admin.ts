@@ -133,3 +133,32 @@ export async function grantUserAccess(userEmail: string, courseId: string, durat
         return { success: false, error: error.message || "Failed to grant access" };
     }
 }
+
+export async function updateUserRole(userId: string, role: 'ADMIN' | 'STUDENT') {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { role }
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to update user role:", error);
+        return { success: false, error: "Failed to update user role" };
+    }
+}
+
+export async function deleteUser(userId: string) {
+    try {
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to delete user:", error);
+        return { success: false, error: "Failed to delete user" };
+    }
+}
