@@ -48,10 +48,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
     ],
     callbacks: {
+        async signIn({ user, account }) {
+            if (account?.provider === "google") {
+                try {
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email: user.email! }
+                    });
+
+                    if (!existingUser) {
+                        await prisma.user.create({
+                            data: {
+                                email: user.email!,
+                                name: user.name,
+                                image: user.image,
+                                role: "STUDENT",
+                            }
+                        });
+                    }
+                    return true;
+                } catch (error) {
+                    console.error("Error during Google sign in synchronization:", error);
+                    return true;
+                }
+            }
+            return true;
+        },
         async jwt({ token, user }) {
             if (user) {
-                token.role = user.role;
-                token.id = user.id;
+                // For Credentials, user already has the data from authorize()
+                // For Google, we need to fetch it from the database we just synced with
+                const dbUser = await prisma.user.findUnique({
+                    where: { email: user.email! }
+                });
+
+                if (dbUser) {
+                    token.id = dbUser.id;
+                    token.role = dbUser.role;
+                }
             }
             return token;
         },

@@ -9,8 +9,10 @@ export default async function CoursesPage() {
     // Fetch fresh user data if logged in
     const dbUser = session?.user?.id ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { isSubscribed: true, role: true }
+        select: { isSubscribed: true, role: true, subscriptionEndsAt: true }
     }) : null;
+
+    const isSubscribed = dbUser?.isSubscribed && dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date();
 
     const courses = await prisma.course.findMany({
         where: { isPublished: true },
@@ -32,8 +34,8 @@ export default async function CoursesPage() {
         const isTrialActive = course.offerFreeTrial &&
             (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
-        const hasAccess = dbUser?.role === "ADMIN" || dbUser?.isSubscribed || isTrialActive;
-        const accessType = dbUser?.role === "ADMIN" ? "ADMIN" : (dbUser?.isSubscribed ? "PRO" : (isTrialActive ? "TRIAL" : null));
+        const hasAccess = dbUser?.role === "ADMIN" || isSubscribed || isTrialActive;
+        const accessType = dbUser?.role === "ADMIN" ? "ADMIN" : (isSubscribed ? "PRO" : (isTrialActive ? "TRIAL" : null));
 
         return {
             ...course,

@@ -53,19 +53,22 @@ export default async function LessonPage({
         })
         : null;
 
-    const isSubscribed = user?.isSubscribed || false;
+    const isAdmin = user?.role === "ADMIN";
+    const isSubscribed = !!(user?.isSubscribed && user.subscriptionEndsAt && user.subscriptionEndsAt > new Date());
+    const isTrialActive = course.offerFreeTrial &&
+        (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
-    // Check for specific course access grant
-    const hasCourseAccess = user?.courseAccess?.some((access: any) =>
+    const hasCourseAccess = !!user?.courseAccess?.some((access: any) =>
         access.courseId === course.id && new Date(access.expiresAt) > new Date()
     );
 
-    const showPaywall = !lesson.isFree && !isSubscribed && !hasCourseAccess;
+    const hasCourseAccessTotal = isAdmin || isSubscribed || isTrialActive || hasCourseAccess;
+    const showPaywall = !lesson.isFree && !hasCourseAccessTotal;
 
     return (
         <div className="flex h-screen bg-white text-zinc-900 pt-16">
             {/* Sidebar */}
-            <CourseSidebar modules={course.modules} isSubscribed={isSubscribed} />
+            <CourseSidebar modules={course.modules} isSubscribed={hasCourseAccessTotal} />
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col h-screen overflow-hidden">

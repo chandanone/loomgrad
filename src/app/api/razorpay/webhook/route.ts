@@ -30,17 +30,30 @@ export async function POST(req: NextRequest) {
             // Extract from notes (most reliable as we set these in createRazorpayOrder)
             const email = payment.notes?.email || payment.email;
             const tier = payment.notes?.tier || "MONTHLY";
-
             const durationDays = tier === "YEARLY" ? 365 : 30;
 
-            await prisma.user.update({
-                where: { email },
-                data: {
-                    isSubscribed: true,
-                    subscriptionTier: tier as any,
-                    subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
-                },
+            // Find user by email (case-insensitive)
+            const user = await prisma.user.findFirst({
+                where: {
+                    email: {
+                        equals: email,
+                        mode: 'insensitive'
+                    }
+                }
             });
+
+            if (user) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        isSubscribed: true,
+                        subscriptionTier: tier as any,
+                        subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+                    },
+                });
+            } else {
+                console.error(`User not found for email: ${email}`);
+            }
         }
 
         return NextResponse.json({ status: "ok" });

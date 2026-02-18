@@ -7,10 +7,12 @@ import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers, ArrowRight } f
 
 interface CoursePageProps {
     params: Promise<{ courseSlug: string }>;
+    searchParams: Promise<{ lesson?: string }>;
 }
 
-export default async function CourseOverviewPage({ params }: CoursePageProps) {
+export default async function CourseOverviewPage({ params, searchParams }: CoursePageProps) {
     const { courseSlug } = await params;
+    const { lesson: lessonId } = await searchParams;
     const session = await auth();
 
     const course = await prisma.course.findUnique({
@@ -31,6 +33,20 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
         return notFound();
     }
 
+    // Handle deep link to specific lesson
+    if (lessonId) {
+        const targetLesson = course.modules
+            .flatMap(m => m.lessons)
+            .find(l => l.id === lessonId);
+
+        if (targetLesson) {
+            const { redirect } = await import("next/navigation");
+            redirect(`/courses/${courseSlug}/lessons/${targetLesson.slug}`);
+        }
+    }
+
+    const firstLesson = course.modules[0]?.lessons[0];
+
     const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
 
     let accessStatus = {
@@ -40,11 +56,12 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
     };
 
     if (session?.user) {
-        // Fetch fresh user data to check subscription status
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { isSubscribed: true, role: true }
+            select: { isSubscribed: true, role: true, subscriptionEndsAt: true }
         });
+
+        const isSubscribed = dbUser?.isSubscribed && dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date();
 
         const access = await prisma.courseAccess.findUnique({
             where: {
@@ -61,7 +78,7 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
         if (dbUser?.role === "ADMIN") {
             accessStatus.hasAccess = true;
             accessStatus.statusLabel = "ADMIN";
-        } else if (dbUser?.isSubscribed) {
+        } else if (isSubscribed) {
             accessStatus.hasAccess = true;
             accessStatus.statusLabel = "PRO";
         } else if (access && (access.expiresAt > new Date())) {
@@ -122,7 +139,7 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
                         ) : (
                             <div className="space-y-4">
                                 {accessStatus.hasAccess ? (
-                                    <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col gap-6">
                                         <div className="flex items-center gap-3 px-5 py-3 bg-green-50 text-green-700 border border-green-200 rounded-2xl w-fit">
                                             <CheckCircle2 className="w-5 h-5" />
                                             <div>
@@ -136,6 +153,14 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
                                                 )}
                                             </div>
                                         </div>
+                                        {firstLesson && (
+                                            <Link
+                                                href={`/courses/${course.slug}/lessons/${firstLesson.slug}`}
+                                                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95 w-fit"
+                                            >
+                                                Start Learning Now <ArrowRight className="w-5 h-5" />
+                                            </Link>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="space-y-6">

@@ -69,14 +69,26 @@ export async function verifyPayment(paymentData: {
     if (generated_signature === razorpay_signature) {
         const durationDays = tier === SubscriptionTier.YEARLY ? 365 : 30;
 
-        await prisma.user.update({
-            where: { email: session.user.email },
-            data: {
-                isSubscribed: true,
-                subscriptionTier: tier,
-                subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
-            },
+        // Find user by email (case-insensitive) to be safe
+        const dbUser = await prisma.user.findFirst({
+            where: {
+                email: {
+                    equals: session.user.email,
+                    mode: 'insensitive'
+                }
+            }
         });
+
+        if (dbUser) {
+            await prisma.user.update({
+                where: { id: dbUser.id },
+                data: {
+                    isSubscribed: true,
+                    subscriptionTier: tier,
+                    subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+                },
+            });
+        }
 
         return { success: true };
     } else {

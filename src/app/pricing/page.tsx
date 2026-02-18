@@ -3,6 +3,8 @@ import { Check, Zap, Rocket, Star } from "lucide-react";
 import Link from "next/link";
 import RazorpayButton from "@/components/payment/RazorpayButton";
 import { SubscriptionTier } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 const tiers = [
     {
@@ -59,7 +61,18 @@ const tiers = [
     }
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+    const session = await auth();
+
+    // Check if user is already subscribed
+    const dbUser = session?.user?.email ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { isSubscribed: true, subscriptionTier: true, subscriptionEndsAt: true }
+    }) : null;
+
+    const isSubscribed = !!(dbUser?.isSubscribed && dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date());
+    const currentTier = isSubscribed ? dbUser?.subscriptionTier : SubscriptionTier.FREE;
+
     return (
         <div className="min-h-screen bg-white text-zinc-900 pt-32 pb-20 px-6 transition-colors duration-300">
             <div className="max-w-7xl mx-auto">
@@ -74,66 +87,75 @@ export default function PricingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-                    {tiers.map((tier) => (
-                        <div
-                            key={tier.name}
-                            className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${tier.highlight
-                                ? "bg-zinc-50 border-blue-500/50 shadow-2xl shadow-blue-500/10 scale-105 z-10"
-                                : "bg-white border-zinc-200 hover:border-zinc-300"
-                                }`}
-                        >
-                            {tier.highlight && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest leading-none">
-                                    Most Popular
-                                </div>
-                            )}
+                    {tiers.map((tier) => {
+                        const isCurrentTier = tier.tier === currentTier;
 
-                            <div className="mb-6">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.highlight ? "bg-blue-600/10 text-blue-500 shadow-inner" : "bg-zinc-100 text-zinc-500"
-                                    }`}>
-                                    <tier.icon className="w-6 h-6" />
+                        return (
+                            <div
+                                key={tier.name}
+                                className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${tier.highlight
+                                    ? "bg-zinc-50 border-blue-500/50 shadow-2xl shadow-blue-500/10 scale-105 z-10"
+                                    : "bg-white border-zinc-200 hover:border-zinc-300"
+                                    }`}
+                            >
+                                {tier.highlight && (
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest leading-none">
+                                        Most Popular
+                                    </div>
+                                )}
+
+                                <div className="mb-6">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.highlight ? "bg-blue-600/10 text-blue-500 shadow-inner" : "bg-zinc-100 text-zinc-500"
+                                        }`}>
+                                        <tier.icon className="w-6 h-6" />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
+                                    <div className="flex items-baseline gap-1 focus-within:ring-2">
+                                        <span className="text-4xl font-bold">{tier.price}</span>
+                                        {tier.period && <span className="text-zinc-500 text-sm font-medium">{tier.period}</span>}
+                                    </div>
+                                    <p className="text-zinc-500 text-sm mt-4 leading-relaxed">
+                                        {tier.description}
+                                    </p>
                                 </div>
-                                <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
-                                <div className="flex items-baseline gap-1 focus-within:ring-2">
-                                    <span className="text-4xl font-bold">{tier.price}</span>
-                                    {tier.period && <span className="text-zinc-500 text-sm font-medium">{tier.period}</span>}
-                                </div>
-                                <p className="text-zinc-500 text-sm mt-4 leading-relaxed">
-                                    {tier.description}
-                                </p>
+
+                                <ul className="space-y-4 mb-10 flex-grow">
+                                    {tier.features.map((feature) => (
+                                        <li key={feature} className="flex items-start gap-3 text-sm text-zinc-600">
+                                            <div className={`mt-0.5 rounded-full p-0.5 ${tier.highlight ? "bg-blue-500/20 text-blue-500" : "bg-zinc-100 text-zinc-400"
+                                                }`}>
+                                                <Check className="w-3 h-3" />
+                                            </div>
+                                            {feature}
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                {tier.tier === SubscriptionTier.FREE ? (
+                                    <Link
+                                        href={session ? "/courses" : tier.href}
+                                        className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 ${isCurrentTier && session
+                                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                                : "bg-zinc-900 text-white hover:bg-black"
+                                            }`}
+                                    >
+                                        {isCurrentTier && session ? "Current Plan" : (session ? "Browse Courses" : tier.buttonText)}
+                                    </Link>
+                                ) : (
+                                    <RazorpayButton
+                                        tier={tier.tier}
+                                        label={isCurrentTier ? "Active Plan" : tier.buttonText}
+                                        className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 flex items-center justify-center ${isCurrentTier
+                                                ? "bg-green-600 text-white cursor-default"
+                                                : (tier.highlight
+                                                    ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
+                                                    : "bg-zinc-900 text-white hover:bg-black")
+                                            }`}
+                                    />
+                                )}
                             </div>
-
-                            <ul className="space-y-4 mb-10 flex-grow">
-                                {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-start gap-3 text-sm text-zinc-600">
-                                        <div className={`mt-0.5 rounded-full p-0.5 ${tier.highlight ? "bg-blue-500/20 text-blue-500" : "bg-zinc-100 text-zinc-400"
-                                            }`}>
-                                            <Check className="w-3 h-3" />
-                                        </div>
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {tier.tier === SubscriptionTier.FREE ? (
-                                <Link
-                                    href={tier.href}
-                                    className="w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 bg-zinc-900 text-white hover:bg-black"
-                                >
-                                    {tier.buttonText}
-                                </Link>
-                            ) : (
-                                <RazorpayButton
-                                    tier={tier.tier}
-                                    label={tier.buttonText}
-                                    className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 flex items-center justify-center ${tier.highlight
-                                        ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
-                                        : "bg-zinc-900 text-white hover:bg-black"
-                                        }`}
-                                />
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="mt-20 p-10 rounded-3xl bg-zinc-50 border border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-8">
