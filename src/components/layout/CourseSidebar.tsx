@@ -50,7 +50,7 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                         exit={{ opacity: 0 }}
                         onClick={() => setIsOpen(false)}
                         className="fixed inset-0 bg-black/5 z-30 lg:hidden"
-                        style={{ top: "64px" }} // Respect navbar height
+                        style={{ top: "var(--navbar-height, 64px)" }} // Respect navbar height
                     />
                 )}
             </AnimatePresence>
@@ -63,7 +63,7 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                         exit={{ x: -300, opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="fixed inset-y-0 left-0 z-20 w-72 bg-zinc-50 border-r border-zinc-100 overflow-y-auto pt-4 shadow-sm"
-                        style={{ top: "64px" }} // Start below navbar
+                        style={{ top: "var(--navbar-height, 64px)" }} // Start below navbar
                     >
                         <nav className="p-4 space-y-8">
                             {modules.map((module) => (

@@ -45,6 +45,13 @@
   --input: #e4e4e7;
   --ring: #18181b;
   --radius: 0.5rem;
+  --navbar-height: 64px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --navbar-height: 80px;
+  }
 }
 
 body {
