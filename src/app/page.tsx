@@ -16,7 +16,8 @@ import {
   Search,
   CheckCircle2,
   Users,
-  Lock
+  Lock,
+  Heart
 } from "lucide-react";
 import { useRef } from "react";
 
@@ -450,11 +451,39 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="mt-20 pt-8 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">
-            <span>© 2024 LoomGrad Technical LMS. Built for the future.</span>
-            <div className="flex gap-6">
-              <Link href="#" className="hover:text-zinc-900 transition-colors">Terms</Link>
-              <Link href="#" className="hover:text-zinc-900 transition-colors">Privacy</Link>
+          <div className="mt-20 pt-10 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex flex-col items-center md:items-start gap-4">
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                © {new Date().getFullYear()} LoomGrad Technical LMS. All Rights Reserved.
+              </span>
+              <div className="flex items-center gap-2 text-sm font-bold text-zinc-500">
+                Crafted with
+                <div className="relative flex items-center justify-center w-4 h-4">
+                  <Heart className="w-4 h-4 text-red-500 hover:scale-110 transition-transform" />
+                  <motion.div
+                    animate={{
+                      opacity: [0, 1, 0],
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2,
+                      times: [0, 0.5, 1],
+                      repeatDelay: 1
+                    }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                  </motion.div>
+                </div>
+                by <span className="text-zinc-900 font-black tracking-tight hover:text-blue-600 transition-colors cursor-pointer">FadooAILabs</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+              <Link href="#" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
+              <Link href="#" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
+              <Link href="#" className="hover:text-blue-600 transition-colors">Cookies</Link>
             </div>
           </div>
         </div>
