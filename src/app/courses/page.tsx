@@ -31,7 +31,7 @@ export default async function CoursesPage() {
     const coursesWithAccess = courses.map((course) => {
         const totalLessons = course.modules.reduce((acc, module) => acc + module._count.lessons, 0);
 
-        const isTrialActive = course.offerFreeTrial &&
+        const isTrialActive = !!dbUser && course.offerFreeTrial &&
             (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
         const hasAccess = dbUser?.role === "ADMIN" || isSubscribed || isTrialActive;

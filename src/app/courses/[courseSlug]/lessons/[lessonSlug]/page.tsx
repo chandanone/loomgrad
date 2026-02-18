@@ -55,7 +55,7 @@ export default async function LessonPage({
 
     const isAdmin = user?.role === "ADMIN";
     const isSubscribed = !!(user?.isSubscribed && user.subscriptionEndsAt && user.subscriptionEndsAt > new Date());
-    const isTrialActive = course.offerFreeTrial &&
+    const isTrialActive = !!user && course.offerFreeTrial &&
         (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
     const hasCourseAccess = !!user?.courseAccess?.some((access: any) =>
