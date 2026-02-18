@@ -81,18 +81,20 @@ export default function Navbar() {
                                     </button>
 
                                     {/* Admin Dropdown */}
-                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-zinc-200 rounded-xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/admin:opacity-100 group-hover/admin:translate-y-0 group-hover/admin:pointer-events-auto transition-all z-50 overflow-hidden">
-                                        <div className="p-2 space-y-1">
-                                            {adminLinks.map((link) => (
-                                                <Link
-                                                    key={link.href}
-                                                    href={link.href}
-                                                    className="flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-blue-600 rounded-lg transition-colors"
-                                                >
-                                                    <link.icon className="w-4 h-4" />
-                                                    {link.name}
-                                                </Link>
-                                            ))}
+                                    <div className="absolute top-full right-0 pt-2 w-48 opacity-0 translate-y-2 pointer-events-none group-hover/admin:opacity-100 group-hover/admin:translate-y-0 group-hover/admin:pointer-events-auto transition-all z-50">
+                                        <div className="bg-white border border-zinc-200 rounded-xl shadow-2xl overflow-hidden">
+                                            <div className="p-2 space-y-1">
+                                                {adminLinks.map((link) => (
+                                                    <Link
+                                                        key={link.href}
+                                                        href={link.href}
+                                                        className="flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-blue-600 rounded-lg transition-colors"
+                                                    >
+                                                        <link.icon className="w-4 h-4" />
+                                                        {link.name}
+                                                    </Link>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
