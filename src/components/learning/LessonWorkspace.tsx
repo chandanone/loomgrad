@@ -25,9 +25,17 @@ interface LessonWorkspaceProps {
     };
     courseThumbnail: string | null;
     showPaywall: boolean;
+    isLoggedIn?: boolean;
+    courseOffersTrial?: boolean;
 }
 
-export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }: LessonWorkspaceProps) {
+export default function LessonWorkspace({
+    lesson,
+    courseThumbnail,
+    showPaywall,
+    isLoggedIn,
+    courseOffersTrial
+}: LessonWorkspaceProps) {
     const [showContent, setShowContent] = useState(true);
     const [showSandbox, setShowSandbox] = useState(true);
 
@@ -110,7 +118,7 @@ export default function LessonWorkspace({ lesson, courseThumbnail, showPaywall }
                             <div className="relative">
                                 {showPaywall ? (
                                     <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center">
-                                        <Paywall />
+                                        <Paywall isLoggedIn={isLoggedIn} courseOffersTrial={courseOffersTrial} />
                                         <img
                                             src={courseThumbnail || ""}
                                             className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-10"

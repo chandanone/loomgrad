@@ -1,10 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lock, Zap, CheckCircle2 } from "lucide-react";
+import { Lock, Zap, CheckCircle2, LogIn } from "lucide-react";
 import Link from "next/link";
 
-export default function Paywall() {
+interface PaywallProps {
+    isLoggedIn?: boolean;
+    courseOffersTrial?: boolean;
+}
+
+export default function Paywall({ isLoggedIn, courseOffersTrial }: PaywallProps) {
+    const showTrialOption = !isLoggedIn && courseOffersTrial;
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -21,14 +28,17 @@ export default function Paywall() {
                     </div>
 
                     <h2 className="text-3xl font-bold mb-4 tracking-tight text-zinc-900">Unlock Your Potential</h2>
-                    <p className="text-zinc-500 mb-8 leading-relaxed">
-                        This lesson is part of our premium content. Join LoomGrad Pro to access all courses, interactive labs, and certifications.
+                    <p className="text-zinc-500 mb-8 leading-relaxed text-sm">
+                        {showTrialOption
+                            ? "Sign in to activate your 30-day free trial or upgrade to Pro for unlimited access to all interactive labs."
+                            : "This lesson is part of our premium content. Join LoomGrad Pro to access all courses, interactive labs, and certifications."
+                        }
                     </p>
 
-                    <div className="space-y-4 mb-8 text-left">
+                    <div className="space-y-3 mb-8 text-left">
                         <div className="flex items-center gap-3 text-sm text-zinc-600">
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
-                            <span>Full access to 50+ masterclasses</span>
+                            <span>Full access to 100+ technical courses</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-zinc-600">
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -40,18 +50,32 @@ export default function Paywall() {
                         </div>
                     </div>
 
-                    <Link
-                        href="/pricing"
-                        className="group block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-600/20"
-                    >
-                        <span className="flex items-center justify-center gap-2">
-                            <Zap className="w-5 h-5 fill-current" />
-                            Unlock All Courses
-                        </span>
-                    </Link>
+                    <div className="space-y-3">
+                        {showTrialOption && (
+                            <Link
+                                href="/auth/signin"
+                                className="group block w-full bg-white border border-zinc-200 hover:border-blue-500 text-zinc-900 font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-sm"
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <LogIn className="w-4 h-4 text-blue-600" />
+                                    Login for 30-Day Free Access
+                                </span>
+                            </Link>
+                        )}
 
-                    <p className="mt-4 text-[11px] text-zinc-400 uppercase tracking-widest font-bold">
-                        Starting at $19/mo. Cancel anytime.
+                        <Link
+                            href="/pricing"
+                            className="group block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-600/20"
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <Zap className="w-5 h-5 fill-current" />
+                                Unlock All Courses
+                            </span>
+                        </Link>
+                    </div>
+
+                    <p className="mt-6 text-[11px] text-zinc-400 uppercase tracking-widest font-bold">
+                        Starting at ₹999/mo. Cancel anytime.
                     </p>
                 </div>
             </div>
