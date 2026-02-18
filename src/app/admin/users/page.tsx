@@ -6,12 +6,14 @@ import {
     Mail,
     Calendar,
     Search,
+    FileText,
     UserCheck,
     UserX,
     MoreVertical,
     Crown,
     Star
 } from "lucide-react";
+import Link from "next/link";
 import { UserActions } from "@/app/admin/users/UserActions";
 import { UserSearch } from "@/app/admin/users/UserSearch";
 
@@ -45,7 +47,16 @@ export default async function AdminUsersPage({
                         </p>
                     </div>
 
-                    <UserSearch />
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/admin/reports/mis"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-100 transition-all"
+                        >
+                            <FileText className="w-4 h-4" />
+                            MIS Report
+                        </Link>
+                        <UserSearch />
+                    </div>
                 </div>
 
                 <div className="bg-white border border-zinc-200 rounded-3xl overflow-hidden shadow-sm">
@@ -76,9 +87,12 @@ export default async function AdminUsersPage({
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-zinc-900 truncate">
+                                                        <Link
+                                                            href={`/admin/users/${user.id}`}
+                                                            className="font-bold text-zinc-900 truncate hover:text-blue-600 transition-colors"
+                                                        >
                                                             {user.name || "Anonymous"}
-                                                        </p>
+                                                        </Link>
                                                         {user.role === 'ADMIN' && (
                                                             <div className="flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border border-blue-100">
                                                                 <Shield className="w-3 h-3" />

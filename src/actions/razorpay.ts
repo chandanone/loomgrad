@@ -80,14 +80,33 @@ export async function verifyPayment(paymentData: {
         });
 
         if (dbUser) {
-            await prisma.user.update({
-                where: { id: dbUser.id },
-                data: {
-                    isSubscribed: true,
-                    subscriptionTier: tier,
-                    subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
-                },
-            });
+            const currentEndsAt = dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date()
+                ? dbUser.subscriptionEndsAt
+                : new Date();
+
+            const newEndsAt = new Date(currentEndsAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+            await prisma.$transaction([
+                prisma.user.update({
+                    where: { id: dbUser.id },
+                    data: {
+                        isSubscribed: true,
+                        subscriptionTier: tier,
+                        subscriptionEndsAt: newEndsAt,
+                    },
+                }),
+                prisma.subscription.create({
+                    data: {
+                        userId: dbUser.id,
+                        plan: tier,
+                        startDate: currentEndsAt,
+                        endDate: newEndsAt,
+                        razorpayPaymentId: razorpay_payment_id,
+                        razorpayOrderId: razorpay_order_id,
+                        status: "ACTIVE"
+                    }
+                })
+            ]);
         }
 
         return { success: true };

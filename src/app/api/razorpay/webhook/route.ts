@@ -43,14 +43,33 @@ export async function POST(req: NextRequest) {
             });
 
             if (user) {
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: {
-                        isSubscribed: true,
-                        subscriptionTier: tier as any,
-                        subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
-                    },
-                });
+                const currentEndsAt = user.subscriptionEndsAt && user.subscriptionEndsAt > new Date()
+                    ? user.subscriptionEndsAt
+                    : new Date();
+
+                const newEndsAt = new Date(currentEndsAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+                await prisma.$transaction([
+                    prisma.user.update({
+                        where: { id: user.id },
+                        data: {
+                            isSubscribed: true,
+                            subscriptionTier: tier as any,
+                            subscriptionEndsAt: newEndsAt,
+                        },
+                    }),
+                    prisma.subscription.create({
+                        data: {
+                            userId: user.id,
+                            plan: tier as any,
+                            startDate: currentEndsAt,
+                            endDate: newEndsAt,
+                            razorpayPaymentId: payment.id,
+                            razorpayOrderId: payment.order_id,
+                            status: "ACTIVE"
+                        }
+                    })
+                ]);
             } else {
                 console.error(`User not found for email: ${email}`);
             }
