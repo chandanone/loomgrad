@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 export default function AdminImportPage() {
     const [playlistId, setPlaylistId] = useState("");
+    const [offerFreeTrial, setOfferFreeTrial] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -17,7 +18,7 @@ export default function AdminImportPage() {
 
         setLoading(true);
         try {
-            const result = await importYouTubePlaylist(playlistId);
+            const result = await importYouTubePlaylist(playlistId, offerFreeTrial);
             if (result.success) {
                 toast.success("Playlist imported successfully!");
                 setPlaylistId("");
@@ -46,7 +47,7 @@ export default function AdminImportPage() {
 
                 <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8 shadow-sm">
                     <form onSubmit={handleImport} className="space-y-6">
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <label htmlFor="playlistId" className="text-sm font-medium text-zinc-700">
                                 YouTube Playlist ID
                             </label>
@@ -63,6 +64,26 @@ export default function AdminImportPage() {
                                     className="w-full bg-white border border-zinc-200 rounded-xl py-3 pl-12 pr-4 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                                     required
                                 />
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 p-4 bg-zinc-100/50 rounded-xl border border-zinc-200">
+                            <div className="flex items-center h-5">
+                                <input
+                                    id="offerFreeTrial"
+                                    type="checkbox"
+                                    checked={offerFreeTrial}
+                                    onChange={(e) => setOfferFreeTrial(e.target.checked)}
+                                    className="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="text-sm">
+                                <label htmlFor="offerFreeTrial" className="font-bold text-zinc-900">
+                                    Offer 30-day Free Trial
+                                </label>
+                                <p className="text-zinc-500 text-xs">
+                                    Enabling this allows any student to access all course content for 30 days starting from the course creation date.
+                                </p>
                             </div>
                         </div>
 

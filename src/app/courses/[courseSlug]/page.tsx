@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers } from "lucide-react";
-import { RequestAccessButton } from "@/components/course/RequestAccessButton";
+import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers, ArrowRight } from "lucide-react";
 
 interface CoursePageProps {
     params: Promise<{ courseSlug: string }>;
@@ -37,38 +36,43 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
     let accessStatus = {
         hasAccess: false,
         expiresAt: null as Date | null,
-        isPending: false,
-        isRejected: false,
+        statusLabel: "", // "Trial", "Pro", "Granted"
     };
 
     if (session?.user) {
-        const [access, request] = await Promise.all([
-            prisma.courseAccess.findUnique({
-                where: {
-                    userId_courseId: {
-                        userId: session.user.id,
-                        courseId: course.id,
-                    },
-                },
-            }),
-            prisma.courseAccessRequest.findUnique({
-                where: {
-                    userId_courseId: {
-                        userId: session.user.id,
-                        courseId: course.id,
-                    },
-                },
-            }),
-        ]);
+        // Fetch fresh user data to check subscription status
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { isSubscribed: true, role: true }
+        });
 
-        if (access) {
+        const access = await prisma.courseAccess.findUnique({
+            where: {
+                userId_courseId: {
+                    userId: session.user.id,
+                    courseId: course.id,
+                },
+            },
+        });
+
+        const isTrialActive = course.offerFreeTrial &&
+            (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
+
+        if (dbUser?.role === "ADMIN") {
+            accessStatus.hasAccess = true;
+            accessStatus.statusLabel = "ADMIN";
+        } else if (dbUser?.isSubscribed) {
+            accessStatus.hasAccess = true;
+            accessStatus.statusLabel = "PRO";
+        } else if (access && (access.expiresAt > new Date())) {
             accessStatus.hasAccess = true;
             accessStatus.expiresAt = access.expiresAt;
-        }
-
-        if (request) {
-            if (request.status === "PENDING") accessStatus.isPending = true;
-            if (request.status === "REJECTED") accessStatus.isRejected = true;
+            accessStatus.statusLabel = "GRANTED";
+        } else if (isTrialActive) {
+            accessStatus.hasAccess = true;
+            accessStatus.statusLabel = "TRIAL";
+            const trialEndsAt = new Date(course.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+            accessStatus.expiresAt = trialEndsAt;
         }
     }
 
@@ -107,15 +111,53 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
                             </div>
                         </div>
 
-                        {session?.user && (
-                            <div className="mb-8">
-                                <RequestAccessButton
-                                    courseId={course.id}
-                                    hasAccess={accessStatus.hasAccess}
-                                    expiresAt={accessStatus.expiresAt}
-                                    isPending={accessStatus.isPending}
-                                    isRejected={accessStatus.isRejected}
-                                />
+                        {!session?.user ? (
+                            <Link
+                                href="/auth/signin"
+                                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                            >
+                                <Lock className="w-5 h-5" />
+                                Sign in to Access
+                            </Link>
+                        ) : (
+                            <div className="space-y-4">
+                                {accessStatus.hasAccess ? (
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center gap-3 px-5 py-3 bg-green-50 text-green-700 border border-green-200 rounded-2xl w-fit">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <div>
+                                                <p className="text-sm font-bold">
+                                                    {accessStatus.statusLabel} ACCESS ACTIVE
+                                                </p>
+                                                {accessStatus.expiresAt && (
+                                                    <p className="text-[10px] opacity-80 uppercase tracking-widest font-medium">
+                                                        Expires: {accessStatus.expiresAt.toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="p-6 bg-zinc-100 border border-zinc-200 rounded-3xl flex items-start gap-4 max-w-md">
+                                            <div className="p-3 bg-white rounded-2xl shadow-sm">
+                                                <Lock className="w-6 h-6 text-zinc-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-zinc-900 mb-1 text-lg">Premium Content</h4>
+                                                <p className="text-zinc-500 text-sm leading-relaxed">
+                                                    This course is reserved for our elite members. Unlock it and 50+ other courses instantly.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/pricing"
+                                            className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-zinc-900/10 active:scale-95"
+                                        >
+                                            Upgrade now <ArrowRight className="w-5 h-5" />
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -132,11 +174,13 @@ export default async function CourseOverviewPage({ params }: CoursePageProps) {
                                 <PlayCircle className="w-20 h-20 text-zinc-300" />
                             </div>
                         )}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-xl shadow-blue-600/40">
-                                <PlayCircle className="w-8 h-8 text-white fill-white" />
+                        {accessStatus.hasAccess && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-xl shadow-blue-600/40">
+                                    <PlayCircle className="w-8 h-8 text-white fill-white" />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

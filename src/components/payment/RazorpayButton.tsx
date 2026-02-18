@@ -45,11 +45,24 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
                 name: "LoomGrad",
                 description: `Subscription for ${tier} plan`,
                 order_id: order.id,
-                handler: function (response: any) {
-                    toast.success("Payment Successful! Your subscription will be activated shortly.");
-                    console.log("Payment successful:", response);
-                    // Redirect to profile since dashboard doesn't exist
-                    window.location.href = "/profile?success=true";
+                handler: async function (response: any) {
+                    try {
+                        const { verifyPayment } = await import("@/actions/razorpay");
+                        await verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            tier: tier
+                        });
+
+                        toast.success("Payment Successful! Your subscription is now active.");
+                        // Redirect to profile since dashboard doesn't exist
+                        window.location.href = "/profile?success=true";
+                    } catch (error) {
+                        console.error("Verification failed:", error);
+                        toast.error("Payment was successful but verification failed. It may take a few minutes to activate.");
+                        window.location.href = "/profile?error=verification";
+                    }
                 },
                 prefill: {
                     name: "", // Can be fetched from session if needed

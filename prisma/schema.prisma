@@ -32,12 +32,6 @@ enum SubmissionStatus {
   ERROR
 }
 
-enum AccessRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model User {
   id                    String           @id @default(cuid())
   name                  String?
@@ -57,7 +51,6 @@ model User {
   codeSubmissions       CodeSubmission[]
   certificates          Certificate[]
   courseAccess          CourseAccess[]
-  accessRequests        CourseAccessRequest[]
   
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -78,12 +71,12 @@ model Course {
   level             CourseLevel @default(BEGINNER)
   language          String    @default("JavaScript")
   isPublished       Boolean   @default(false)
+  offerFreeTrial    Boolean   @default(false) // Gives 30 days free access from creation
   
   // Relations
   modules           Module[]
   enrollments       Progress[]
   courseAccess      CourseAccess[]
-  accessRequests    CourseAccessRequest[]
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -210,16 +203,4 @@ model CourseAccess {
   @@index([userId, expiresAt])
 }
 
-model CourseAccessRequest {
-  id        String              @id @default(cuid())
-  userId    String
-  courseId  String
-  status    AccessRequestStatus @default(PENDING)
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-}

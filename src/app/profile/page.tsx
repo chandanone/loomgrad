@@ -56,8 +56,15 @@ export default async function ProfilePage({
     }
 
     // Calculate stats
+    const publishedCoursesCount = await prisma.course.count({ where: { isPublished: true } });
+    const startedCoursesCount = new Set(user.progress.map(p => p.courseId)).size;
+
+    // If Pro/Admin, they are technically "enrolled" (have access) to all published courses
+    const enrolledCoursesCount = (user.isSubscribed || user.role === "ADMIN")
+        ? publishedCoursesCount
+        : startedCoursesCount;
+
     const completedLessons = user.progress.filter(p => p.isCompleted).length;
-    const enrolledCoursesCount = new Set(user.progress.map(p => p.courseId)).size;
 
     // Group progress by course for the "Continue Learning" section
     const courseProgressMap = new Map();
@@ -158,7 +165,9 @@ export default async function ProfilePage({
                             <BookOpen className="w-6 h-6 text-blue-500" />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Enrolled</p>
+                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                                {(user.isSubscribed || user.role === "ADMIN") ? "Unlocked" : "Enrolled"}
+                            </p>
                             <h3 className="text-xl font-bold">{enrolledCoursesCount} Courses</h3>
                         </div>
                     </div>

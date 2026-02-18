@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPlaylistMetadata, getPlaylistVideos } from "@/lib/youtube";
 import { revalidatePath } from "next/cache";
 
-export async function importYouTubePlaylist(playlistId: string) {
+export async function importYouTubePlaylist(playlistId: string, offerFreeTrial: boolean = false) {
     try {
         // 1. Fetch metadata and videos
         const metadata = await getPlaylistMetadata(playlistId);
@@ -25,6 +25,7 @@ export async function importYouTubePlaylist(playlistId: string) {
                 youtubePlaylistId: playlistId,
                 slug: `${slug}-${Date.now()}`,
                 isPublished: false,
+                offerFreeTrial: offerFreeTrial,
             },
         });
 

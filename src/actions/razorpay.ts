@@ -1,6 +1,7 @@
 
 "use server";
 
+import crypto from "crypto";
 import { razorpay } from "@/lib/razorpay";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -49,12 +50,36 @@ export async function verifyPayment(paymentData: {
     razorpay_order_id: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
+    tier: SubscriptionTier;
 }) {
-    // This is optional if you rely on webhooks, but good for immediate feedback
-    // However, for security, updating the database should ideally happen in the webhook
-    // or through server-side verification with the secret key.
+    const session = await auth();
+    if (!session?.user?.email) {
+        throw new Error("User not authenticated");
+    }
 
-    // In this implementation, we will let the webhook handle the database update
-    // for maximum reliability, but we could add verification here too.
-    return { success: true };
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tier } = paymentData;
+
+    // Verify signature
+    const text = razorpay_order_id + "|" + razorpay_payment_id;
+    const generated_signature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+        .update(text)
+        .digest("hex");
+
+    if (generated_signature === razorpay_signature) {
+        const durationDays = tier === SubscriptionTier.YEARLY ? 365 : 30;
+
+        await prisma.user.update({
+            where: { email: session.user.email },
+            data: {
+                isSubscribed: true,
+                subscriptionTier: tier,
+                subscriptionEndsAt: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+            },
+        });
+
+        return { success: true };
+    } else {
+        throw new Error("Invalid payment signature");
+    }
 }
