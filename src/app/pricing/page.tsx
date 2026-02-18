@@ -1,10 +1,13 @@
 
 import { Check, Zap, Rocket, Star } from "lucide-react";
 import Link from "next/link";
+import RazorpayButton from "@/components/payment/RazorpayButton";
+import { SubscriptionTier } from "@prisma/client";
 
 const tiers = [
     {
         name: "Free",
+        tier: SubscriptionTier.FREE,
         price: "₹0",
         description: "Start your journey with our fundamental courses.",
         features: [
@@ -20,6 +23,7 @@ const tiers = [
     },
     {
         name: "Monthly",
+        tier: SubscriptionTier.MONTHLY,
         price: "₹999",
         period: "/month",
         description: "Perfect for students staying committed to learning.",
@@ -37,6 +41,7 @@ const tiers = [
     },
     {
         name: "Yearly",
+        tier: SubscriptionTier.YEARLY,
         price: "₹9,999",
         period: "/year",
         description: "Best value for dedicated learners and professionals.",
@@ -110,14 +115,23 @@ export default function PricingPage() {
                                 ))}
                             </ul>
 
-                            <button
-                                className={`w-full py-4 rounded-xl font-bold text-sm transition-all active:scale-95 ${tier.highlight
-                                    ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
-                                    : "bg-zinc-900 text-white hover:bg-black"
-                                    }`}
-                            >
-                                {tier.buttonText}
-                            </button>
+                            {tier.tier === SubscriptionTier.FREE ? (
+                                <Link
+                                    href={tier.href}
+                                    className="w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 bg-zinc-900 text-white hover:bg-black"
+                                >
+                                    {tier.buttonText}
+                                </Link>
+                            ) : (
+                                <RazorpayButton
+                                    tier={tier.tier}
+                                    label={tier.buttonText}
+                                    className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 flex items-center justify-center ${tier.highlight
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
+                                        : "bg-zinc-900 text-white hover:bg-black"
+                                        }`}
+                                />
+                            )}
                         </div>
                     ))}
                 </div>

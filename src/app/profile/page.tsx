@@ -17,7 +17,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+    searchParams
+}: {
+    searchParams: Promise<{ success?: string }>
+}) {
+    const { success } = await searchParams;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -78,6 +83,17 @@ export default async function ProfilePage() {
     return (
         <div className="min-h-screen bg-white text-zinc-900 pt-32 pb-20 px-6 transition-colors duration-300">
             <div className="max-w-6xl mx-auto">
+                {success === "true" && (
+                    <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="bg-green-500 p-1 rounded-full">
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-green-800 font-bold text-sm">Payment Successful!</p>
+                            <p className="text-green-600 text-xs">Your PRO subscription has been activated. Welcome to the elite tier!</p>
+                        </div>
+                    </div>
+                )}
                 {/* Header / Profile Card */}
                 <div className="relative mb-12 bg-zinc-50 border border-zinc-200 rounded-3xl p-8 md:p-12 overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
