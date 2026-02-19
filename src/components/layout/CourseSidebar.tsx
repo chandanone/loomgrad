@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,12 +26,27 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
     const pathname = usePathname();
     const params = useParams();
 
+    // Responsive behavior: Close sidebar on mobile when navigating
+    useEffect(() => {
+        const checkMobile = () => {
+            if (window.innerWidth < 1024) {
+                setIsOpen(false);
+            }
+        };
+
+        checkMobile();
+        // Also close when pathname changes (user clicked a lesson)
+        if (window.innerWidth < 1024) {
+            setIsOpen(false);
+        }
+    }, [pathname]);
+
     return (
         <>
             {/* Toggle Button — visible on all screens */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed top-20 left-4 z-30 p-2 bg-white/80 backdrop-blur-sm border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors shadow-lg"
+                className="fixed top-[7rem] sm:top-32 left-4 z-[45] p-2 bg-white/80 backdrop-blur-sm border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors shadow-lg"
                 title={isOpen ? "Hide sidebar" : "Show sidebar"}
             >
                 {isOpen ? (
@@ -49,7 +64,7 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsOpen(false)}
-                        className="fixed inset-0 bg-black/5 z-30 lg:hidden"
+                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
                         style={{ top: "var(--navbar-height, 64px)" }} // Respect navbar height
                     />
                 )}
@@ -62,7 +77,7 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: -300, opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed inset-y-0 left-0 z-20 w-72 bg-zinc-50 border-r border-zinc-100 overflow-y-auto pt-4 shadow-sm"
+                        className="fixed inset-y-0 left-0 z-40 w-72 bg-zinc-50 border-r border-zinc-100 overflow-y-auto pt-4 shadow-xl"
                         style={{ top: "var(--navbar-height, 64px)" }} // Start below navbar
                     >
                         <nav className="p-4 space-y-8">

@@ -66,12 +66,12 @@ export default async function LessonPage({
     const showPaywall = !lesson.isFree && !hasCourseAccessTotal;
 
     return (
-        <div className="flex h-screen bg-white text-zinc-900 pt-16">
+        <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-white text-zinc-900 mt-16 md:mt-20 overflow-hidden">
             {/* Sidebar */}
             <CourseSidebar modules={course.modules} isSubscribed={hasCourseAccessTotal} />
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col h-screen overflow-hidden">
+            <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Top Header */}
                 <header className="px-4 sm:px-6 lg:px-8 py-3 lg:py-4 border-b border-zinc-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-30 shrink-0">
                     <div className="flex items-center gap-4 min-w-0">
