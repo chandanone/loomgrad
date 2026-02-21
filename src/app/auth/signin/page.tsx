@@ -1,16 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useEffect } from "react";
 import { BookOpen, Github, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
+    const { data: session, status } = useSession();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        if (status === "authenticated" && session?.user) {
+            if (session.user.role === "ADMIN") {
+                router.push("/admin");
+            } else {
+                router.push("/");
+            }
+        }
+    }, [session, status, router]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -33,7 +45,16 @@ export default function SignInPage() {
                 toast.error("Invalid credentials. Please try again.");
             } else {
                 toast.success("Signed in successfully!");
-                router.push("/");
+
+                // Fetch the new session to determine the user's role
+                const { getSession } = await import("next-auth/react");
+                const session = await getSession();
+
+                if (session?.user?.role === "ADMIN") {
+                    router.push("/admin");
+                } else {
+                    router.push("/");
+                }
                 router.refresh();
             }
         } catch (err) {
@@ -123,7 +144,7 @@ export default function SignInPage() {
 
                     <div className="grid grid-cols-1 gap-4">
                         <button
-                            onClick={() => signIn("google", { callbackUrl: "/" })}
+                            onClick={() => signIn("google")}
                             className="bg-zinc-50 border border-zinc-200 text-zinc-900 font-medium py-3.5 rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24">

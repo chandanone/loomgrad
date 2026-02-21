@@ -75,8 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async jwt({ token, user }) {
             if (user) {
-                // For Credentials, user already has the data from authorize()
-                // For Google, we need to fetch it from the database we just synced with
+                // Fetch the user from database to get our custom fields (id, role)
                 const dbUser = await prisma.user.findUnique({
                     where: { email: user.email! }
                 });
@@ -84,6 +83,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (dbUser) {
                     token.id = dbUser.id;
                     token.role = dbUser.role;
+                } else {
+                    token.id = user.id;
+                    token.role = (user as any).role || "STUDENT";
                 }
             }
             return token;
@@ -101,5 +103,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
+        maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
     },
 });

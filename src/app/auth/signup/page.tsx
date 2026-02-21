@@ -1,17 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { BookOpen, User as UserIcon, Mail, Lock, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { register } from "@/actions/auth";
 
 export default function SignUpPage() {
+    const { data: session, status } = useSession();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        if (status === "authenticated" && session?.user) {
+            router.push("/");
+        }
+    }, [session, status, router]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -132,7 +139,7 @@ export default function SignUpPage() {
 
                     <div className="grid grid-cols-1 gap-4">
                         <button
-                            onClick={() => signIn("google", { callbackUrl: "/" })}
+                            onClick={() => signIn("google")}
                             className="bg-zinc-50 border border-zinc-200 text-zinc-900 font-medium py-3.5 rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24">
