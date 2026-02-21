@@ -44,15 +44,15 @@ export default function SignInPage() {
                 setError("Invalid email or password");
                 toast.error("Invalid credentials. Please try again.");
             } else {
-                toast.success("Signed in successfully!");
-
                 // Fetch the new session to determine the user's role
                 const { getSession } = await import("next-auth/react");
                 const session = await getSession();
 
                 if (session?.user?.role === "ADMIN") {
+                    toast.success("Welcome back, Admin! Redirecting to dashboard...");
                     router.push("/admin");
                 } else {
+                    toast.success("Signed in successfully!");
                     router.push("/");
                 }
                 router.refresh();
