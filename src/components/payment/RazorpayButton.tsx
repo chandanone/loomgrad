@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createRazorpayOrder } from "@/actions/razorpay";
+import { createRazorpayOrder, verifyPayment } from "@/actions/razorpay";
 import { SubscriptionTier } from "@prisma/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -36,7 +36,14 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
     const handlePayment = async () => {
         setIsLoading(true);
         try {
-            const order = await createRazorpayOrder(tier);
+            const result = await createRazorpayOrder(tier);
+
+            if (!result.success || !result.data) {
+                toast.error(result.error || "Failed to initiate payment");
+                return;
+            }
+
+            const { data: order } = result;
 
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use public key here
@@ -47,17 +54,20 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
                 order_id: order.id,
                 handler: async function (response: any) {
                     try {
-                        const { verifyPayment } = await import("@/actions/razorpay");
-                        await verifyPayment({
+                        const verifyResult = await verifyPayment({
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
                             tier: tier
                         });
 
-                        toast.success("Payment Successful! Your subscription is now active.");
-                        // Redirect to profile since dashboard doesn't exist
-                        window.location.href = "/profile?success=true";
+                        if (verifyResult.success) {
+                            toast.success("Payment Successful! Your subscription is now active.");
+                            // Redirect to profile since dashboard doesn't exist
+                            window.location.href = "/profile?success=true";
+                        } else {
+                            toast.error(verifyResult.error || "Payment verification failed.");
+                        }
                     } catch (error) {
                         console.error("Verification failed:", error);
                         toast.error("Payment was successful but verification failed. It may take a few minutes to activate.");
