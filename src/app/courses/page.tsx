@@ -10,10 +10,24 @@ export default async function CoursesPage() {
     // Fetch fresh user data if logged in
     const dbUser = session?.user?.id ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { isSubscribed: true, role: true, subscriptionEndsAt: true }
+        select: { id: true, isSubscribed: true, role: true, subscriptionEndsAt: true }
     }) : null;
 
-    const isSubscribed = dbUser?.isSubscribed && dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date();
+    const isSubscribed = !!(dbUser?.isSubscribed && dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date());
+
+    // Fetch user's course-specific access
+    const userAccess = dbUser && session?.user?.id ? await (prisma.courseAccess as any).findMany({
+        where: {
+            userId: session.user.id,
+            OR: [
+                { expiresAt: { equals: null } },
+                { expiresAt: { gt: new Date() } }
+            ]
+        },
+        select: { courseId: true }
+    }) : [];
+
+    const purchaseIds = new Set(userAccess.map((p: any) => p.courseId));
 
     const courses = await prisma.course.findMany({
         where: { isPublished: true },
@@ -35,8 +49,14 @@ export default async function CoursesPage() {
         const isTrialActive = !!dbUser && course.offerFreeTrial &&
             (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
-        const hasAccess = dbUser?.role === "ADMIN" || isSubscribed || isTrialActive;
-        const accessType = dbUser?.role === "ADMIN" ? "ADMIN" : (isSubscribed ? "PRO" : (isTrialActive ? "TRIAL" : null));
+        const isPurchased = purchaseIds.has(course.id);
+        const hasAccess = dbUser?.role === "ADMIN" || isSubscribed || isTrialActive || isPurchased;
+
+        let accessType = null;
+        if (dbUser?.role === "ADMIN") accessType = "ADMIN";
+        else if (isSubscribed) accessType = "PRO";
+        else if (isPurchased) accessType = "PURCHASED";
+        else if (isTrialActive) accessType = "TRIAL";
 
         return {
             ...course,

@@ -212,7 +212,7 @@ model CourseAccess {
   id        String   @id @default(cuid())
   userId    String
   courseId  String
-  expiresAt DateTime
+  expiresAt DateTime?
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)

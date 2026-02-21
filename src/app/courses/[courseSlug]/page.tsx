@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers, ArrowRight, IndianRupee } from "lucide-react";
+import RazorpayButton from "@/components/payment/RazorpayButton";
 
 interface CoursePageProps {
     params: Promise<{ courseSlug: string }>;
@@ -167,24 +168,38 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="space-y-6">
-                                        <div className="p-6 bg-zinc-100 border border-zinc-200 rounded-3xl flex items-start gap-4 max-w-md">
-                                            <div className="p-3 bg-white rounded-2xl shadow-sm">
-                                                <Lock className="w-6 h-6 text-zinc-400" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-zinc-900 mb-1 text-lg">Premium Content</h4>
-                                                <p className="text-zinc-500 text-sm leading-relaxed">
-                                                    This course is reserved for our elite members. Unlock it and 50+ other courses instantly.
-                                                </p>
+                                    <div className="space-y-8">
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <div className="p-6 bg-zinc-100 border border-zinc-200 rounded-3xl flex items-start gap-4 flex-1">
+                                                <div className="p-3 bg-white rounded-2xl shadow-sm">
+                                                    <Lock className="w-6 h-6 text-zinc-400" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-zinc-900 mb-1 text-lg">Premium Content</h4>
+                                                    <p className="text-zinc-500 text-sm leading-relaxed">
+                                                        Unlock this course forever or get elite access to all courses.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <Link
-                                            href="/pricing"
-                                            className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-zinc-900/10 active:scale-95"
-                                        >
-                                            Upgrade now <ArrowRight className="w-5 h-5" />
-                                        </Link>
+
+                                        <div className="flex flex-wrap gap-4">
+                                            {(course as any).price > 0 && (
+                                                <RazorpayButton
+                                                    courseId={course.id}
+                                                    price={(course as any).price}
+                                                    label={`Buy Course - ₹${(course as any).price}`}
+                                                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                                                />
+                                            )}
+
+                                            <Link
+                                                href="/pricing"
+                                                className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-zinc-900/10 active:scale-95"
+                                            >
+                                                Get PRO Access <ArrowRight className="w-5 h-5" />
+                                            </Link>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -192,6 +207,14 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                     </div>
 
                     <div className="relative aspect-video rounded-3xl overflow-hidden border border-zinc-200 shadow-2xl shadow-blue-500/5 group bg-zinc-100">
+                        <div className="absolute top-4 right-4 z-10">
+                            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/50 shadow-xl flex items-center gap-2">
+                                <IndianRupee className="w-4 h-4 text-zinc-900" />
+                                <span className="font-black text-zinc-900">
+                                    {course.price ? `₹${course.price}` : "PRO Content"}
+                                </span>
+                            </div>
+                        </div>
                         {course.thumbnail ? (
                             <img
                                 src={course.thumbnail}
@@ -260,6 +283,6 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

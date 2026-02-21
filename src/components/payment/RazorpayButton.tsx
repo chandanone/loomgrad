@@ -14,12 +14,14 @@ declare global {
 }
 
 interface RazorpayButtonProps {
-    tier: SubscriptionTier;
+    tier?: SubscriptionTier;
+    courseId?: string;
+    price?: number;
     label: string;
     className?: string;
 }
 
-export default function RazorpayButton({ tier, label, className }: RazorpayButtonProps) {
+export default function RazorpayButton({ tier, courseId, price, label, className }: RazorpayButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -36,7 +38,7 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
     const handlePayment = async () => {
         setIsLoading(true);
         try {
-            const result = await createRazorpayOrder(tier);
+            const result = await createRazorpayOrder({ tier, courseId });
 
             if (!result.success || !result.data) {
                 toast.error(result.error || "Failed to initiate payment");
@@ -50,7 +52,7 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
                 amount: order.amount,
                 currency: order.currency,
                 name: "LoomGrad",
-                description: `Subscription for ${tier} plan`,
+                description: order.description || (tier ? `Subscription for ${tier} plan` : "Course Purchase"),
                 order_id: order.id,
                 handler: async function (response: any) {
                     try {
@@ -58,20 +60,23 @@ export default function RazorpayButton({ tier, label, className }: RazorpayButto
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            tier: tier
+                            tier: tier,
+                            courseId: courseId
                         });
 
                         if (verifyResult.success) {
-                            toast.success("Payment Successful! Your subscription is now active.");
-                            // Redirect to profile since dashboard doesn't exist
-                            window.location.href = "/profile?success=true";
+                            toast.success(tier
+                                ? "Payment Successful! Your subscription is now active."
+                                : "Payment Successful! Course unlocked successfully."
+                            );
+                            // Refresh or redirect
+                            window.location.reload();
                         } else {
                             toast.error(verifyResult.error || "Payment verification failed.");
                         }
                     } catch (error) {
                         console.error("Verification failed:", error);
                         toast.error("Payment was successful but verification failed. It may take a few minutes to activate.");
-                        window.location.href = "/profile?error=verification";
                     }
                 },
                 prefill: {
