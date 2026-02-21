@@ -19,7 +19,7 @@ const tiers = [
             "Standard support"
         ],
         buttonText: "Get Started",
-        href: "/api/auth/signin",
+        href: "/auth/signup",
         highlight: false,
         icon: Star
     },
@@ -135,8 +135,8 @@ export default async function PricingPage() {
                                     <Link
                                         href={session ? "/courses" : tier.href}
                                         className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 ${isCurrentTier && session
-                                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                                                : "bg-zinc-900 text-white hover:bg-black"
+                                            ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                            : "bg-zinc-900 text-white hover:bg-black"
                                             }`}
                                     >
                                         {isCurrentTier && session ? "Current Plan" : (session ? "Browse Courses" : tier.buttonText)}
@@ -146,10 +146,10 @@ export default async function PricingPage() {
                                         tier={tier.tier}
                                         label={isCurrentTier ? "Active Plan" : tier.buttonText}
                                         className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 flex items-center justify-center ${isCurrentTier
-                                                ? "bg-green-600 text-white cursor-default"
-                                                : (tier.highlight
-                                                    ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
-                                                    : "bg-zinc-900 text-white hover:bg-black")
+                                            ? "bg-green-600 text-white cursor-default"
+                                            : (tier.highlight
+                                                ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
+                                                : "bg-zinc-900 text-white hover:bg-black")
                                             }`}
                                     />
                                 )}

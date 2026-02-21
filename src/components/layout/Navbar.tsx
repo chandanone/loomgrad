@@ -165,7 +165,7 @@ export default function Navbar() {
                                     Login
                                 </Link>
                                 <Link
-                                    href="/auth/signin"
+                                    href="/auth/signup"
                                     className="bg-blue-600 text-white text-[13px] md:text-sm font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
                                 >
                                     <span className="hidden sm:inline">Join Now</span>
@@ -303,7 +303,7 @@ export default function Navbar() {
                                             Log In
                                         </Link>
                                         <Link
-                                            href="/auth/signin"
+                                            href="/auth/signup"
                                             className="flex items-center justify-center py-4 bg-blue-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
                                         >
                                             Sign Up
