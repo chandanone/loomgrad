@@ -67,7 +67,7 @@ export default function AdminImportPage() {
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-3 p-4 bg-zinc-100/50 rounded-xl border border-zinc-200">
+                        {/* <div className="flex items-start gap-3 p-4 bg-zinc-100/50 rounded-xl border border-zinc-200">
                             <div className="flex items-center h-5">
                                 <input
                                     id="offerFreeTrial"
@@ -85,7 +85,7 @@ export default function AdminImportPage() {
                                     Enabling this allows any student to access all course content for 30 days starting from the course creation date.
                                 </p>
                             </div>
-                        </div>
+                        </div> */}
 
                         <button
                             type="submit"

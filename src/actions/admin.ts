@@ -162,3 +162,147 @@ export async function deleteUser(userId: string) {
         return { success: false, error: "Failed to delete user" };
     }
 }
+// --- New Course Management Actions ---
+
+export async function updateCourseDetails(courseId: string, data: {
+    title?: string;
+    description?: string;
+    price?: number;
+    duration?: string;
+    level?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+    category?: string;
+    offerFreeTrial?: boolean;
+}) {
+    try {
+        await prisma.course.update({
+            where: { id: courseId },
+            data
+        });
+
+        revalidatePath("/admin/courses");
+        revalidatePath(`/admin/courses/${courseId}`);
+        revalidatePath("/courses");
+        revalidatePath(`/courses/${courseId}`);
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to update course details:", error);
+        return { success: false, error: "Failed to update course details" };
+    }
+}
+
+export async function createModule(courseId: string, title: string, orderIndex: number) {
+    try {
+        const module = await prisma.module.create({
+            data: {
+                courseId,
+                title,
+                orderIndex,
+            }
+        });
+
+        revalidatePath(`/admin/courses/${courseId}`);
+        return { success: true, module };
+    } catch (error: any) {
+        console.error("Failed to create module:", error);
+        return { success: false, error: "Failed to create module" };
+    }
+}
+
+export async function updateModule(moduleId: string, title: string) {
+    try {
+        const module = await prisma.module.update({
+            where: { id: moduleId },
+            data: { title }
+        });
+
+        revalidatePath(`/admin/courses/${module.courseId}`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: "Failed to update module" };
+    }
+}
+
+export async function deleteModule(moduleId: string) {
+    try {
+        const module = await prisma.module.findUnique({ where: { id: moduleId } });
+        if (!module) return { success: false, error: "Module not found" };
+
+        await prisma.module.delete({ where: { id: moduleId } });
+
+        revalidatePath(`/admin/courses/${module.courseId}`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: "Failed to delete module" };
+    }
+}
+
+export async function deleteLesson(lessonId: string) {
+    try {
+        const lesson = await prisma.lesson.findUnique({
+            where: { id: lessonId },
+            include: { module: true }
+        });
+        if (!lesson) return { success: false, error: "Lesson not found" };
+
+        await prisma.lesson.delete({ where: { id: lessonId } });
+
+        revalidatePath(`/admin/courses/${lesson.module.courseId}`);
+        revalidatePath(`/courses/${lesson.module.courseId}`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: "Failed to delete lesson" };
+    }
+}
+
+/**
+ * Rearranges lessons by updating their module and order index.
+ * items: Array of { lessonId, moduleId, orderIndex }
+ */
+export async function rearrangeLessons(courseId: string, items: { lessonId: string, moduleId: string, orderIndex: number }[]) {
+    try {
+        await prisma.$transaction(
+            items.map(item =>
+                prisma.lesson.update({
+                    where: { id: item.lessonId },
+                    data: {
+                        moduleId: item.moduleId,
+                        orderIndex: item.orderIndex
+                    }
+                })
+            )
+        );
+
+        revalidatePath(`/admin/courses/${courseId}`);
+        revalidatePath(`/courses/${courseId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to rearrange lessons:", error);
+        return { success: false, error: "Failed to rearrange lessons" };
+    }
+}
+
+/**
+ * Rearranges modules by updating their order index.
+ * items: Array of { moduleId, orderIndex }
+ */
+export async function rearrangeModules(courseId: string, items: { moduleId: string, orderIndex: number }[]) {
+    try {
+        await prisma.$transaction(
+            items.map(item =>
+                prisma.module.update({
+                    where: { id: item.moduleId },
+                    data: {
+                        orderIndex: item.orderIndex
+                    }
+                })
+            )
+        );
+
+        revalidatePath(`/admin/courses/${courseId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to rearrange modules:", error);
+        return { success: false, error: "Failed to rearrange modules" };
+    }
+}

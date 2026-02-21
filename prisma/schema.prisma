@@ -91,6 +91,8 @@ model Course {
   language          String    @default("JavaScript")
   isPublished       Boolean   @default(false)
   offerFreeTrial    Boolean   @default(false) // Gives 30 days free access from creation
+  price             Float?    @default(0)
+  duration          String?   // e.g., "10h 30m"
   
   // Relations
   modules           Module[]

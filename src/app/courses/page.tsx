@@ -1,3 +1,4 @@
+// Full schema updated
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -28,8 +29,8 @@ export default async function CoursesPage() {
         orderBy: { createdAt: "desc" },
     });
 
-    const coursesWithAccess = courses.map((course) => {
-        const totalLessons = course.modules.reduce((acc, module) => acc + module._count.lessons, 0);
+    const coursesWithAccess = courses.map((course: any) => {
+        const totalLessons = (course.modules as any[]).reduce((acc, module) => acc + (module._count?.lessons || 0), 0);
 
         const isTrialActive = !!dbUser && course.offerFreeTrial &&
             (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
@@ -42,7 +43,7 @@ export default async function CoursesPage() {
             totalLessons,
             hasAccess,
             accessType,
-        };
+        } as any;
     });
 
     return (
@@ -133,15 +134,21 @@ export default async function CoursesPage() {
                                         {course.description || "Start your technical journey with this comprehensive guide."}
                                     </p>
 
-                                    <div className="flex items-center justify-between text-[13px] text-zinc-500 font-medium border-t border-zinc-200 pt-4">
+                                    <div className="flex items-center justify-between text-[13px] text-zinc-500 font-medium border-t border-zinc-200 pt-4 mb-2">
                                         <div className="flex items-center gap-1.5">
                                             <Clock className="w-4 h-4" />
-                                            <span>{course.level}</span>
+                                            <span>{course.duration || "Self-paced"}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-blue-600 font-bold">
                                             <BarChart className="w-4 h-4" />
                                             <span>{course.totalLessons} Lessons</span>
                                         </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{course.level}</span>
+                                        <span className="text-sm font-black text-zinc-900">
+                                            {course.price ? `₹${course.price}` : "PRO Content"}
+                                        </span>
                                     </div>
                                 </div>
                             </Link>

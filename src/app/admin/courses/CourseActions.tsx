@@ -8,7 +8,8 @@ import {
     Eye,
     EyeOff,
     ExternalLink,
-    Loader2
+    Loader2,
+    Settings
 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
@@ -67,6 +68,14 @@ export default function CourseActions({ courseId, isPublished, slug }: CourseAct
                 title="View Course"
             >
                 <ExternalLink className="w-5 h-5" />
+            </Link>
+
+            <Link
+                href={`/admin/courses/${courseId}`}
+                className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
+                title="Edit Course"
+            >
+                <Settings className="w-5 h-5" />
             </Link>
 
             <button

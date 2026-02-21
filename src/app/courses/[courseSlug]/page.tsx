@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers, ArrowRight } from "lucide-react";
+import { PlayCircle, CheckCircle2, Lock, Clock, BookOpen, Layers, ArrowRight, IndianRupee } from "lucide-react";
 
 interface CoursePageProps {
     params: Promise<{ courseSlug: string }>;
@@ -15,7 +15,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
     const { lesson: lessonId } = await searchParams;
     const session = await auth();
 
-    const course = await prisma.course.findUnique({
+    const course = await (prisma.course as any).findUnique({
         where: { slug: courseSlug },
         include: {
             modules: {
@@ -27,7 +27,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                 },
             },
         },
-    });
+    }) as any;
 
     if (!course) {
         return notFound();
@@ -35,9 +35,9 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
 
     // Handle deep link to specific lesson
     if (lessonId) {
-        const targetLesson = course.modules
-            .flatMap(m => m.lessons)
-            .find(l => l.id === lessonId);
+        const targetLesson = (course.modules as any[])
+            .flatMap((m: any) => m.lessons)
+            .find((l: any) => l.id === lessonId);
 
         if (targetLesson) {
             const { redirect } = await import("next/navigation");
@@ -47,7 +47,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
 
     const firstLesson = course.modules[0]?.lessons[0];
 
-    const totalLessons = course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0);
+    const totalLessons = (course.modules as any[]).reduce((acc: number, mod: any) => acc + mod.lessons.length, 0);
 
     let accessStatus = {
         hasAccess: false,
@@ -119,12 +119,16 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                                 <span>{course.modules.length} Modules</span>
                             </div>
                             <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-blue-600" />
+                                <span>{course.duration || "Self-paced"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <Layers className="w-4 h-4 text-blue-600" />
                                 <span>{totalLessons} Lessons</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-blue-600" />
-                                <span>Self-paced</span>
+                            <div className="flex items-center gap-2 font-bold text-zinc-900">
+                                <IndianRupee className="w-4 h-4 text-green-600" />
+                                <span>{course.price ? `₹${course.price}` : "Included in PRO"}</span>
                             </div>
                         </div>
 
@@ -214,7 +218,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
             <div className="max-w-4xl mx-auto px-6 py-20">
                 <h2 className="text-3xl font-bold mb-10 tracking-tight">Course Syllabus</h2>
                 <div className="space-y-8">
-                    {course.modules.map((module, mIdx) => (
+                    {(course.modules as any[]).map((module: any, mIdx: number) => (
                         <div key={module.id} className="relative">
                             <div className="flex items-center gap-4 mb-4">
                                 <div className="flex-shrink-0 w-8 h-8 bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-500">
@@ -222,9 +226,8 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                                 </div>
                                 <h3 className="text-xl font-bold">{module.title}</h3>
                             </div>
-
                             <div className="ml-4 pl-8 border-l border-zinc-100 space-y-3">
-                                {module.lessons.map((lesson) => (
+                                {(module.lessons as any[]).map((lesson: any) => (
                                     <Link
                                         key={lesson.id}
                                         href={`/courses/${course.slug}/lessons/${lesson.slug}`}
