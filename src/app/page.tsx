@@ -476,7 +476,7 @@ export default function LandingPage() {
                     <Heart className="w-4 h-4 text-red-500 fill-red-500" />
                   </motion.div>
                 </div>
-                by <span className="text-zinc-900 font-black tracking-tight hover:text-blue-600 transition-colors cursor-pointer">ChandooAILabs</span>
+                by <span className="text-zinc-900 font-black tracking-tight hover:text-blue-600 transition-colors cursor-pointer">CharuAILabs</span>
               </div>
             </div>
 
