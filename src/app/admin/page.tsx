@@ -93,7 +93,7 @@ export default async function AdminDashboard() {
                                 <TrendingUp className="w-8 h-8 text-blue-600" />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-bold mb-2">Automate Content</h3>
+                                <h3 className="text-2xl font-bold mb-2">Create Course</h3>
                                 <p className="text-zinc-500 text-sm leading-relaxed mb-6">
                                     Import entire YouTube playlists and turn them into structured courses with one click.
                                 </p>
@@ -101,7 +101,7 @@ export default async function AdminDashboard() {
                                     href="/admin/import"
                                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
                                 >
-                                    Open Importer <ArrowRight className="w-4 h-4" />
+                                    Open Playlist Importer <ArrowRight className="w-4 h-4" />
                                 </Link>
                             </div>
                         </div>
