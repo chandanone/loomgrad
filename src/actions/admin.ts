@@ -6,6 +6,15 @@ import { revalidatePath } from "next/cache";
 
 export async function importYouTubePlaylist(playlistId: string, offerFreeTrial: boolean = false) {
     try {
+        // 0. Check if course already exists
+        const existingCourse = await prisma.course.findUnique({
+            where: { youtubePlaylistId: playlistId },
+        });
+
+        if (existingCourse) {
+            throw new Error("course with this id already exist, pls try with some other playlistid");
+        }
+
         // 1. Fetch metadata and videos
         const metadata = await getPlaylistMetadata(playlistId);
         const videos = await getPlaylistVideos(playlistId);
