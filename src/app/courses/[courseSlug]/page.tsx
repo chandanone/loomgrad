@@ -82,7 +82,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
         } else if (isSubscribed) {
             accessStatus.hasAccess = true;
             accessStatus.statusLabel = "PRO";
-        } else if (access && (access.expiresAt > new Date())) {
+        } else if (access && access.expiresAt && (access.expiresAt > new Date())) {
             accessStatus.hasAccess = true;
             accessStatus.expiresAt = access.expiresAt;
             accessStatus.statusLabel = "GRANTED";
