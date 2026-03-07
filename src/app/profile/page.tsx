@@ -213,7 +213,7 @@ export default async function ProfilePage({
                                 {activeCourses.map((item) => (
                                     <Link
                                         key={item.course.id}
-                                        href={`/courses/${item.course.slug}`}
+                                        href={`/courses/${item.course.slug}/lessons/${item.lastLesson.slug}`}
                                         className="group block p-6 bg-white border border-zinc-200 rounded-2xl hover:border-blue-500/50 transition-all hover:shadow-xl hover:shadow-blue-500/5"
                                     >
                                         <div className="flex flex-col md:flex-row items-center gap-6">

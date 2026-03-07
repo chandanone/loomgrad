@@ -29,6 +29,21 @@ export default async function CoursesPage() {
 
     const purchaseIds = new Set(userAccess.map((p: any) => p.courseId));
 
+    // Fetch user progress for all courses
+    const allProgress = dbUser && session?.user?.id ? await prisma.progress.findMany({
+        where: { userId: session.user.id },
+        include: { lesson: true },
+        orderBy: { lastWatchedAt: "desc" }
+    }) : [];
+
+    // Map courseId to last accessed lesson
+    const courseLastAccessMap = new Map();
+    allProgress.forEach(p => {
+        if (!courseLastAccessMap.has(p.courseId)) {
+            courseLastAccessMap.set(p.courseId, p.lesson);
+        }
+    });
+
     const courses = await prisma.course.findMany({
         where: { isPublished: true },
         include: {
@@ -58,11 +73,16 @@ export default async function CoursesPage() {
         else if (isPurchased) accessType = "PURCHASED";
         else if (isTrialActive) accessType = "TRIAL";
 
+        const lastLesson = courseLastAccessMap.get(course.id);
+        const hasProgress = !!lastLesson;
+
         return {
             ...course,
             totalLessons,
             hasAccess,
             accessType,
+            lastLesson,
+            hasProgress,
         } as any;
     });
 
@@ -140,6 +160,19 @@ export default async function CoursesPage() {
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-white/50">
                                                 <Lock className="w-6 h-6 text-zinc-400" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {course.hasProgress && course.hasAccess && (
+                                        <div className="absolute inset-x-0 bottom-4 px-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                                            <div className="flex items-center justify-between gap-3 bg-zinc-900/90 backdrop-blur-lg border border-white/10 p-4 rounded-2xl shadow-2xl">
+                                                <div className="min-w-0">
+                                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Resume From</p>
+                                                    <p className="text-white text-xs font-bold truncate">{course.lastLesson?.title}</p>
+                                                </div>
+                                                <div className="bg-blue-600 p-2 rounded-xl group/btn hover:scale-110 transition-transform">
+                                                    <Play className="w-4 h-4 text-white fill-white" />
+                                                </div>
                                             </div>
                                         </div>
                                     )}

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import CourseSidebar from "@/components/layout/CourseSidebar";
 import LessonWorkspace from "@/components/learning/LessonWorkspace";
+import { ProgressTracker } from "@/components/learning/ProgressTracker";
 
 export default async function LessonPage({
     params
@@ -67,6 +68,11 @@ export default async function LessonPage({
 
     return (
         <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-white text-zinc-900 mt-16 md:mt-20 overflow-hidden">
+            {/* Progress Tracking Widget */}
+            {session?.user && hasCourseAccessTotal && (
+                <ProgressTracker courseId={course.id} lessonId={lesson.id} />
+            )}
+
             {/* Sidebar */}
             <CourseSidebar modules={course.modules} isSubscribed={hasCourseAccessTotal} />
 

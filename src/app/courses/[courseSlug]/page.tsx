@@ -94,6 +94,26 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
         }
     }
 
+    // Fetch Last Accessed Lesson
+    let lastAccessedLesson = null;
+    if (session?.user && (accessStatus as any).hasAccess) {
+        const lastProgress = await prisma.progress.findFirst({
+            where: {
+                userId: session.user.id,
+                courseId: course.id,
+            },
+            orderBy: {
+                lastWatchedAt: "desc",
+            },
+            include: {
+                lesson: true,
+            },
+        });
+        if (lastProgress) {
+            lastAccessedLesson = (lastProgress as any).lesson;
+        }
+    }
+
     return (
         <div className="min-h-screen bg-white text-zinc-900 pt-32 transition-colors duration-300">
             {/* Hero Section */}
@@ -158,7 +178,20 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
                                                 )}
                                             </div>
                                         </div>
-                                        {firstLesson && (
+                                        {lastAccessedLesson ? (
+                                            <Link
+                                                href={`/courses/${course.slug}/lessons/${lastAccessedLesson.slug}`}
+                                                className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 active:scale-95 w-fit group"
+                                            >
+                                                <div className="flex flex-col items-start">
+                                                    <span className="text-xs opacity-80 uppercase tracking-widest font-black leading-none mb-1">Resume Course</span>
+                                                    <span className="flex items-center gap-2">
+                                                        {lastAccessedLesson.title}
+                                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        ) : firstLesson && (
                                             <Link
                                                 href={`/courses/${course.slug}/lessons/${firstLesson.slug}`}
                                                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95 w-fit"
