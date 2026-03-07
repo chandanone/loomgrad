@@ -20,6 +20,17 @@ export default function SignUpPage() {
         }
     }, [session, status, router]);
 
+    if (status === "loading" || status === "authenticated") {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                    <p className="text-zinc-500 font-medium animate-pulse">Initializing session...</p>
+                </div>
+            </div>
+        );
+    }
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);

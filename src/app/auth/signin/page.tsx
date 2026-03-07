@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -24,6 +24,17 @@ export default function SignInPage() {
         }
     }, [session, status, router]);
 
+    if (status === "loading" || status === "authenticated") {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                    <p className="text-zinc-500 font-medium animate-pulse">Initializing session...</p>
+                </div>
+            </div>
+        );
+    }
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
@@ -43,9 +54,9 @@ export default function SignInPage() {
             if (res?.error) {
                 setError("Invalid email or password");
                 toast.error("Invalid credentials. Please try again.");
+                setIsLoading(false);
             } else {
                 // Fetch the new session to determine the user's role
-                const { getSession } = await import("next-auth/react");
                 const session = await getSession();
 
                 if (session?.user?.role === "ADMIN") {
@@ -55,11 +66,9 @@ export default function SignInPage() {
                     toast.success("Signed in successfully!");
                     router.push("/");
                 }
-                router.refresh();
             }
         } catch (err) {
             setError("Something went wrong. Please try again.");
-        } finally {
             setIsLoading(false);
         }
     };
