@@ -58,27 +58,34 @@ export default function CodeEditor({
                 </div>
             </div>
 
-            {/* Editor Container */}
-            <div className="flex-1 min-h-[400px]">
-                <Editor
-                    height="100%"
-                    defaultLanguage={language}
-                    theme="vs-dark"
-                    value={code}
-                    onChange={(value) => setCode(value || "")}
-                    options={{
-                        fontSize: 14,
-                        minimap: { enabled: false },
-                        padding: { top: 20 },
-                        scrollBeyondLastLine: false,
-                        lineNumbers: "on",
-                        roundedSelection: true,
-                        automaticLayout: true,
-                        fontFamily: "var(--font-geist-mono), monospace",
-                        smoothScrolling: true,
-                        contextmenu: false,
-                    }}
-                />
+            {/* Editor Container - using a relative wrapper to prevent Monaco focus/offset errors during layout shifts */}
+            <div className="flex-1 relative min-h-0 min-w-0">
+                <div className="absolute inset-0">
+                    <Editor
+                        height="100%"
+                        defaultLanguage={language}
+                        theme="vs-dark"
+                        value={code}
+                        onChange={(value) => setCode(value || "")}
+                        options={{
+                            fontSize: 14,
+                            minimap: { enabled: false },
+                            padding: { top: 20 },
+                            scrollBeyondLastLine: false,
+                            lineNumbers: "on",
+                            roundedSelection: true,
+                            automaticLayout: true, // Crucial for resizing
+                            fontFamily: "var(--font-geist-mono), monospace",
+                            smoothScrolling: true,
+                            contextmenu: false,
+                            scrollbar: {
+                                useShadows: false,
+                                verticalScrollbarSize: 8,
+                                horizontalScrollbarSize: 8,
+                            },
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );

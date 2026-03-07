@@ -181,6 +181,8 @@ export async function updateCourseDetails(courseId: string, data: {
     level?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
     category?: string;
     offerFreeTrial?: boolean;
+    hasSandbox?: boolean;
+    hasWhiteboard?: boolean;
 }) {
     try {
         await prisma.course.update({

@@ -102,6 +102,8 @@ export default async function LessonPage({
                     showPaywall={showPaywall}
                     isLoggedIn={!!session?.user}
                     courseOffersTrial={course.offerFreeTrial && (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000}
+                    hasSandbox={(course as any).hasSandbox}
+                    hasWhiteboard={(course as any).hasWhiteboard}
                 />
             </main>
         </div>

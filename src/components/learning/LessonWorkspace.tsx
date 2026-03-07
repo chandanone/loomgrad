@@ -3,6 +3,7 @@
 import { useState } from "react";
 import VideoPlayer from "@/components/learning/VideoPlayer";
 import CodeEditor from "@/components/learning/CodeEditor";
+import Whiteboard from "@/components/learning/Whiteboard";
 import Paywall from "@/components/learning/Paywall";
 import {
     BookOpen,
@@ -14,6 +15,7 @@ import {
     PanelRightClose,
     PanelRightOpen,
     Maximize2,
+    Edit3,
 } from "lucide-react";
 
 interface LessonWorkspaceProps {
@@ -27,6 +29,8 @@ interface LessonWorkspaceProps {
     showPaywall: boolean;
     isLoggedIn?: boolean;
     courseOffersTrial?: boolean;
+    hasSandbox?: boolean;
+    hasWhiteboard?: boolean;
 }
 
 export default function LessonWorkspace({
@@ -34,21 +38,18 @@ export default function LessonWorkspace({
     courseThumbnail,
     showPaywall,
     isLoggedIn,
-    courseOffersTrial
+    courseOffersTrial,
+    hasSandbox = true,
+    hasWhiteboard = false
 }: LessonWorkspaceProps) {
     const [showContent, setShowContent] = useState(true);
-    const [showSandbox, setShowSandbox] = useState(true);
+    const [showSandbox, setShowSandbox] = useState(hasSandbox);
+    const [showWhiteboard, setShowWhiteboard] = useState(false);
 
     const toggleContent = () => {
-        // Don't allow hiding if sandbox is already hidden
-        if (showContent && !showSandbox) return;
+        // Don't allow hiding if no other panels are visible
+        if (showContent && !showSandbox && !showWhiteboard) return;
         setShowContent(prev => !prev);
-    };
-
-    const toggleSandbox = () => {
-        // Don't allow hiding if content is already hidden
-        if (showSandbox && !showContent) return;
-        setShowSandbox(prev => !prev);
     };
 
     return (
@@ -67,38 +68,73 @@ export default function LessonWorkspace({
                         <span className="hidden sm:inline">Lesson</span>
                     </button>
 
-                    <button
-                        onClick={toggleSandbox}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showSandbox
-                            ? "bg-purple-600 text-white shadow-sm"
-                            : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
-                            }`}
-                    >
-                        {showSandbox ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-                        <span className="hidden sm:inline">Sandbox</span>
-                    </button>
+                    {hasSandbox && (
+                        <button
+                            onClick={() => {
+                                const nextSandbox = !showSandbox;
+                                setShowSandbox(nextSandbox);
+                                if (!nextSandbox && !showContent && !showWhiteboard) setShowContent(true);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showSandbox
+                                ? "bg-purple-600 text-white shadow-sm"
+                                : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
+                                }`}
+                        >
+                            {showSandbox ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">Sandbox</span>
+                        </button>
+                    )}
+
+                    {hasWhiteboard && (
+                        <button
+                            onClick={() => {
+                                const nextWhiteboard = !showWhiteboard;
+                                setShowWhiteboard(nextWhiteboard);
+                                if (!nextWhiteboard && !showContent && !showSandbox) setShowContent(true);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showWhiteboard
+                                ? "bg-amber-600 text-white shadow-sm"
+                                : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
+                                }`}
+                        >
+                            {showWhiteboard ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">Whiteboard</span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
                     {/* Focus Mode: show only one at a time */}
-                    {showContent && showSandbox && (
+                    {showContent && (showSandbox || showWhiteboard) && (
                         <>
                             <button
-                                onClick={() => setShowSandbox(false)}
+                                onClick={() => { setShowSandbox(false); setShowWhiteboard(false); }}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
                                 title="Focus on Lesson"
                             >
                                 <Maximize2 className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">Focus Lesson</span>
                             </button>
-                            <button
-                                onClick={() => setShowContent(false)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
-                                title="Focus on Sandbox"
-                            >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Focus Code</span>
-                            </button>
+                            {hasSandbox && (
+                                <button
+                                    onClick={() => { setShowContent(false); setShowWhiteboard(false); setShowSandbox(true); }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
+                                    title="Focus on Sandbox"
+                                >
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Focus Code</span>
+                                </button>
+                            )}
+                            {hasWhiteboard && (
+                                <button
+                                    onClick={() => { setShowContent(false); setShowSandbox(false); setShowWhiteboard(true); }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700 transition-all shadow-sm"
+                                    title="Focus on Whiteboard"
+                                >
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Focus Board</span>
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
@@ -110,8 +146,9 @@ export default function LessonWorkspace({
                 {/* Left Side: Video & Content */}
                 {showContent && (
                     <div
-                        className={`flex flex-col overflow-y-auto bg-white ${showSandbox ? "lg:w-1/2 lg:border-r border-zinc-100" : "w-full"
-                            } ${!showSandbox ? "" : "h-1/2 lg:h-full border-b lg:border-b-0 border-zinc-100"}`}
+                        className={`flex flex-col overflow-y-auto bg-white transition-all duration-300 ${showSandbox && showWhiteboard ? "lg:w-1/3 lg:border-r" :
+                                (showSandbox || showWhiteboard) ? "lg:w-1/2 lg:border-r" : "w-full"
+                            } border-zinc-100 ${(showSandbox || showWhiteboard) ? "h-1/2 lg:h-full border-b lg:border-b-0" : ""}`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
                             {/* Media Section */}
@@ -155,11 +192,12 @@ export default function LessonWorkspace({
                     </div>
                 )}
 
-                {/* Right Side: Code Editor */}
-                {showSandbox && (
+                {/* Center/Right Side: Code Editor */}
+                {hasSandbox && showSandbox && (
                     <div
-                        className={`flex flex-col ${showContent ? "lg:w-1/2" : "w-full"
-                            } ${showContent ? "h-1/2 lg:h-full" : "h-full"} bg-zinc-50`}
+                        className={`flex flex-col transition-all duration-300 ${showContent && showWhiteboard ? "lg:w-1/3" :
+                                (showContent || showWhiteboard) ? "lg:w-1/2" : "w-full"
+                            } ${showContent || showWhiteboard ? "h-1/2 lg:h-full lg:border-r border-zinc-100" : "h-full"} bg-zinc-50`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
                             <div className="flex items-center gap-2 text-purple-600 font-bold text-xs uppercase tracking-widest mb-3 lg:mb-4">
@@ -171,6 +209,25 @@ export default function LessonWorkspace({
                                     initialCode={lesson.starterCode || `// Practice: ${lesson.title}\n\nfunction solution() {\n  // Type your code here\n}\n`}
                                     language="javascript"
                                 />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Right Side: Whiteboard */}
+                {hasWhiteboard && showWhiteboard && (
+                    <div
+                        className={`flex flex-col transition-all duration-300 ${showContent && showSandbox ? "lg:w-1/3" :
+                                (showContent || showSandbox) ? "lg:w-1/2" : "w-full"
+                            } ${showContent || showSandbox ? "h-1/2 lg:h-full" : "h-full"} bg-zinc-50`}
+                    >
+                        <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
+                            <div className="flex items-center gap-2 text-amber-600 font-bold text-xs uppercase tracking-widest mb-3 lg:mb-4">
+                                <Edit3 className="w-4 h-4" />
+                                Visual Whiteboard
+                            </div>
+                            <div className="flex-1 bg-white rounded-2xl lg:rounded-3xl overflow-hidden shadow-xl border border-zinc-200 min-h-0">
+                                <Whiteboard />
                             </div>
                         </div>
                     </div>

@@ -51,6 +51,8 @@ interface CourseEditorProps {
         level: string;
         isPublished: boolean;
         offerFreeTrial: boolean;
+        hasSandbox: boolean;
+        hasWhiteboard: boolean;
         modules: ModuleWithLessons[];
     };
 }
@@ -75,6 +77,8 @@ export default function CourseEditor({ course: initialCourse }: CourseEditorProp
                 duration: formData.get("duration") as string,
                 level: formData.get("level") as any,
                 offerFreeTrial: formData.get("offerFreeTrial") === "on",
+                hasSandbox: formData.get("hasSandbox") === "on",
+                hasWhiteboard: formData.get("hasWhiteboard") === "on",
             });
 
             if (res.success) {
@@ -320,17 +324,45 @@ export default function CourseEditor({ course: initialCourse }: CourseEditorProp
                             />
                         </div>
 
-                        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                            <input
-                                type="checkbox"
-                                name="offerFreeTrial"
-                                id="offerFreeTrial"
-                                defaultChecked={course.offerFreeTrial}
-                                className="w-5 h-5 accent-blue-600 rounded"
-                            />
-                            <label htmlFor="offerFreeTrial" className="text-sm font-bold text-blue-700">
-                                Offer 30-Day Free Trial upon subscription/login
-                            </label>
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                                <input
+                                    type="checkbox"
+                                    name="offerFreeTrial"
+                                    id="offerFreeTrial"
+                                    defaultChecked={course.offerFreeTrial}
+                                    className="w-5 h-5 accent-blue-600 rounded"
+                                />
+                                <label htmlFor="offerFreeTrial" className="text-sm font-bold text-blue-700">
+                                    Trial (30 Days)
+                                </label>
+                            </div>
+
+                            <div className="flex-1 flex items-center gap-3 p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+                                <input
+                                    type="checkbox"
+                                    name="hasSandbox"
+                                    id="hasSandbox"
+                                    defaultChecked={course.hasSandbox}
+                                    className="w-5 h-5 accent-purple-600 rounded"
+                                />
+                                <label htmlFor="hasSandbox" className="text-sm font-bold text-purple-700">
+                                    Sandbox
+                                </label>
+                            </div>
+
+                            <div className="flex-1 flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+                                <input
+                                    type="checkbox"
+                                    name="hasWhiteboard"
+                                    id="hasWhiteboard"
+                                    defaultChecked={course.hasWhiteboard}
+                                    className="w-5 h-5 accent-amber-600 rounded"
+                                />
+                                <label htmlFor="hasWhiteboard" className="text-sm font-bold text-amber-700">
+                                    Whiteboard
+                                </label>
+                            </div>
                         </div>
 
                         <div className="flex justify-end pt-4">

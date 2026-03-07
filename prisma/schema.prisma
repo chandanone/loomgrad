@@ -93,6 +93,8 @@ model Course {
   offerFreeTrial    Boolean   @default(false) // Gives 30 days free access from creation
   price             Float?    @default(0)
   duration          String?   // e.g., "10h 30m"
+  hasSandbox        Boolean   @default(true)
+  hasWhiteboard      Boolean   @default(false)
   
   // Relations
   modules           Module[]
