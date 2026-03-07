@@ -43,18 +43,61 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
 
     return (
         <>
-            {/* Toggle Button — visible on all screens */}
-            <button
+            {/* Toggle Button — repositioned to header area to avoid overlap */}
+            <motion.button
+                initial={false}
+                animate={{
+                    left: isOpen ? "18.5rem" : "0rem",
+                }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed top-[7rem] sm:top-32 left-4 z-[45] p-2 bg-white/80 backdrop-blur-sm border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors shadow-lg"
-                title={isOpen ? "Hide sidebar" : "Show sidebar"}
+                className={`
+                    fixed top-[4.7rem] md:top-[5.7rem] z-[50] 
+                    flex items-center gap-1.5 p-1.5 md:p-2
+                    bg-white/95 backdrop-blur-xl 
+                    border border-zinc-200/50 
+                    rounded-r-xl shadow-[4px_0_24px_rgba(0,0,0,0.08)] 
+                    hover:shadow-[4px_0_32px_rgba(0,0,0,0.12)] 
+                    transition-all group border-l-0
+                `}
+                title={isOpen ? "Hide syllabus" : "Show syllabus"}
             >
-                {isOpen ? (
-                    <PanelLeftClose className="w-5 h-5 text-zinc-500" />
-                ) : (
-                    <PanelLeftOpen className="w-5 h-5 text-zinc-500" />
-                )}
-            </button>
+                <div className="relative w-4 h-4 md:w-5 md:h-5">
+                    <motion.div
+                        animate={{
+                            rotate: isOpen ? 0 : 180,
+                            opacity: isOpen ? 1 : 0,
+                            scale: isOpen ? 1 : 0.5
+                        }}
+                        className="absolute inset-0 flex items-center justify-center text-zinc-400"
+                    >
+                        <PanelLeftClose className="w-5 h-5 group-hover:text-zinc-900 transition-colors" />
+                    </motion.div>
+                    <motion.div
+                        animate={{
+                            rotate: isOpen ? -180 : 0,
+                            opacity: isOpen ? 0 : 1,
+                            scale: isOpen ? 0.5 : 1
+                        }}
+                        className="absolute inset-0 flex items-center justify-center text-blue-600"
+                    >
+                        <PanelLeftOpen className="w-4 h-4 md:w-5 md:h-5" />
+                    </motion.div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                    {!isOpen && (
+                        <motion.span
+                            initial={{ width: 0, opacity: 0, x: -10 }}
+                            animate={{ width: "auto", opacity: 1, x: 0 }}
+                            exit={{ width: 0, opacity: 0, x: -10 }}
+                            className="text-[9px] md:text-[10px] font-bold text-zinc-600 uppercase tracking-widest overflow-hidden whitespace-nowrap pr-2"
+                        >
+                            Syllabus
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+            </motion.button>
 
             {/* Backdrop on mobile when sidebar is open */}
             <AnimatePresence>
@@ -76,11 +119,17 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                         initial={{ x: -300, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: -300, opacity: 0 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed inset-y-0 left-0 z-40 w-72 bg-zinc-50 border-r border-zinc-100 overflow-y-auto pt-4 shadow-xl"
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-zinc-100 overflow-y-auto pt-6 shadow-2xl lg:shadow-none"
                         style={{ top: "var(--navbar-height, 64px)" }} // Start below navbar
                     >
-                        <nav className="p-4 space-y-8">
+                        <div className="px-6 mb-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-zinc-900">Course Syllabus</h2>
+                                <p className="text-xs text-zinc-500 mt-0.5">Track your progress</p>
+                            </div>
+                        </div>
+                        <nav className="px-4 pb-12 space-y-8">
                             {modules.map((module) => (
                                 <div key={module.id}>
                                     <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-4">
@@ -96,19 +145,32 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
                                                     key={lesson.id}
                                                     href={`/courses/${params.courseSlug}/lessons/${lesson.slug}`}
                                                     className={`
-                            group flex items-center justify-between p-3 rounded-xl transition-all
-                            ${isActive ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-zinc-200/50 text-zinc-500 hover:text-zinc-900'}
+                            group flex items-center justify-between p-3.5 rounded-2xl transition-all duration-200
+                            ${isActive
+                                                            ? 'bg-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.25)]'
+                                                            : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900'}
                           `}
                                                 >
                                                     <div className="flex items-center gap-3 overflow-hidden">
-                                                        {isActive ? (
-                                                            <PlayCircle className="w-4 h-4 flex-shrink-0" />
-                                                        ) : (
-                                                            <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-zinc-300" />
-                                                        )}
-                                                        <span className="text-sm font-medium truncate">{lesson.title}</span>
+                                                        <div className={`
+                                                            w-8 h-8 rounded-xl flex items-center justify-center transition-colors
+                                                            ${isActive ? 'bg-white/20' : 'bg-zinc-100 group-hover:bg-white'}
+                                                        `}>
+                                                            {isActive ? (
+                                                                <PlayCircle className="w-4 h-4 flex-shrink-0" />
+                                                            ) : (
+                                                                <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${lesson.isCompleted ? 'text-green-500' : 'text-zinc-400'}`} />
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-[13px] font-semibold truncate ${isActive ? 'text-white' : 'text-zinc-700'}`}>
+                                                            {lesson.title}
+                                                        </span>
                                                     </div>
-                                                    {isLocked && <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-white/70' : 'text-zinc-300'}`} />}
+                                                    {isLocked && (
+                                                        <div className={`p-1.5 rounded-lg ${isActive ? 'bg-white/20' : 'bg-zinc-50'}`}>
+                                                            <Lock className={`w-3 h-3 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
+                                                        </div>
+                                                    )}
                                                 </Link>
                                             );
                                         })}
@@ -122,7 +184,7 @@ export default function CourseSidebar({ modules, isSubscribed }: SidebarProps) {
 
             {/* Spacer — pushes main content on desktop when sidebar is open */}
             {isOpen && (
-                <div className="hidden lg:block w-72 shrink-0" />
+                <div className="hidden lg:block w-80 shrink-0" />
             )}
         </>
     );

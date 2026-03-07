@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VideoPlayer from "@/components/learning/VideoPlayer";
 import CodeEditor from "@/components/learning/CodeEditor";
 import Whiteboard from "@/components/learning/Whiteboard";
@@ -46,10 +46,51 @@ export default function LessonWorkspace({
     const [showSandbox, setShowSandbox] = useState(hasSandbox);
     const [showWhiteboard, setShowWhiteboard] = useState(false);
 
-    const toggleContent = () => {
-        // Don't allow hiding if no other panels are visible
-        if (showContent && !showSandbox && !showWhiteboard) return;
-        setShowContent(prev => !prev);
+    // Ensure singleton view on mobile initial load
+    useEffect(() => {
+        const isMobile = window.innerWidth < 1024;
+        if (isMobile) {
+            if (showContent && (showSandbox || showWhiteboard)) {
+                setShowSandbox(false);
+                setShowWhiteboard(false);
+            }
+        }
+    }, []);
+
+    const handleToggle = (panel: 'content' | 'sandbox' | 'whiteboard') => {
+        const isMobile = window.innerWidth < 1024;
+
+        if (isMobile) {
+            // Mandatory singleton on mobile
+            if (panel === 'content') {
+                setShowContent(true);
+                setShowSandbox(false);
+                setShowWhiteboard(false);
+            } else if (panel === 'sandbox') {
+                setShowContent(false);
+                setShowSandbox(true);
+                setShowWhiteboard(false);
+            } else if (panel === 'whiteboard') {
+                setShowContent(false);
+                setShowSandbox(false);
+                setShowWhiteboard(true);
+            }
+            return;
+        }
+
+        // Standard multi-panel logic for desktop
+        if (panel === 'content') {
+            if (showContent && !showSandbox && !showWhiteboard) return;
+            setShowContent(prev => !prev);
+        } else if (panel === 'sandbox') {
+            const next = !showSandbox;
+            setShowSandbox(next);
+            if (!next && !showContent && !showWhiteboard) setShowContent(true);
+        } else if (panel === 'whiteboard') {
+            const next = !showWhiteboard;
+            setShowWhiteboard(next);
+            if (!next && !showContent && !showSandbox) setShowContent(true);
+        }
     };
 
     return (
@@ -58,7 +99,7 @@ export default function LessonWorkspace({
             <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 bg-zinc-50 shrink-0">
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={toggleContent}
+                        onClick={() => handleToggle('content')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showContent
                             ? "bg-blue-600 text-white shadow-sm"
                             : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
@@ -70,11 +111,7 @@ export default function LessonWorkspace({
 
                     {hasSandbox && (
                         <button
-                            onClick={() => {
-                                const nextSandbox = !showSandbox;
-                                setShowSandbox(nextSandbox);
-                                if (!nextSandbox && !showContent && !showWhiteboard) setShowContent(true);
-                            }}
+                            onClick={() => handleToggle('sandbox')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showSandbox
                                 ? "bg-purple-600 text-white shadow-sm"
                                 : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
@@ -87,11 +124,7 @@ export default function LessonWorkspace({
 
                     {hasWhiteboard && (
                         <button
-                            onClick={() => {
-                                const nextWhiteboard = !showWhiteboard;
-                                setShowWhiteboard(nextWhiteboard);
-                                if (!nextWhiteboard && !showContent && !showSandbox) setShowContent(true);
-                            }}
+                            onClick={() => handleToggle('whiteboard')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showWhiteboard
                                 ? "bg-amber-600 text-white shadow-sm"
                                 : "bg-white text-zinc-500 border border-zinc-200 hover:text-zinc-700"
@@ -147,7 +180,7 @@ export default function LessonWorkspace({
                 {showContent && (
                     <div
                         className={`flex flex-col overflow-y-auto bg-white transition-all duration-300 ${showSandbox && showWhiteboard ? "lg:w-1/3 lg:border-r" :
-                                (showSandbox || showWhiteboard) ? "lg:w-1/2 lg:border-r" : "w-full"
+                            (showSandbox || showWhiteboard) ? "lg:w-1/2 lg:border-r" : "w-full"
                             } border-zinc-100 ${(showSandbox || showWhiteboard) ? "h-1/2 lg:h-full border-b lg:border-b-0" : ""}`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
@@ -196,7 +229,7 @@ export default function LessonWorkspace({
                 {hasSandbox && showSandbox && (
                     <div
                         className={`flex flex-col transition-all duration-300 ${showContent && showWhiteboard ? "lg:w-1/3" :
-                                (showContent || showWhiteboard) ? "lg:w-1/2" : "w-full"
+                            (showContent || showWhiteboard) ? "lg:w-1/2" : "w-full"
                             } ${showContent || showWhiteboard ? "h-1/2 lg:h-full lg:border-r border-zinc-100" : "h-full"} bg-zinc-50`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
@@ -218,7 +251,7 @@ export default function LessonWorkspace({
                 {hasWhiteboard && showWhiteboard && (
                     <div
                         className={`flex flex-col transition-all duration-300 ${showContent && showSandbox ? "lg:w-1/3" :
-                                (showContent || showSandbox) ? "lg:w-1/2" : "w-full"
+                            (showContent || showSandbox) ? "lg:w-1/2" : "w-full"
                             } ${showContent || showSandbox ? "h-1/2 lg:h-full" : "h-full"} bg-zinc-50`}
                     >
                         <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">

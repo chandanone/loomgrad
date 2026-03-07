@@ -79,12 +79,11 @@ export default async function LessonPage({
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Top Header */}
-                <header className="px-4 sm:px-6 lg:px-8 py-3 lg:py-4 border-b border-zinc-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-30 shrink-0">
+                <header className="px-4 sm:px-6 lg:px-8 !pl-28 sm:!pl-32 md:!pl-40 py-3 lg:py-4 border-b border-zinc-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-30 shrink-0">
                     <div className="flex items-center gap-4 min-w-0">
                         <h2 className="text-xs sm:text-sm font-bold tracking-tight text-zinc-500 capitalize truncate">
-                            <span className="hidden sm:inline">{course.title}</span>
-                            <span className="sm:hidden">{course.title.length > 20 ? course.title.substring(0, 20) + '...' : course.title}</span>
-                            <span className="mx-2 text-zinc-300">/</span>
+                            <span className="hidden md:inline">{course.title}</span>
+                            <span className="hidden md:inline mx-2 text-zinc-300">/</span>
                             <span className="text-zinc-900">{lesson.title}</span>
                         </h2>
                     </div>
