@@ -5,6 +5,7 @@ import VideoPlayer from "@/components/learning/VideoPlayer";
 import CodeEditor from "@/components/learning/CodeEditor";
 import Whiteboard from "@/components/learning/Whiteboard";
 import Paywall from "@/components/learning/Paywall";
+import { updateLessonNotes } from "@/actions/admin";
 import {
     BookOpen,
     FileText,
@@ -16,15 +17,19 @@ import {
     PanelRightOpen,
     Maximize2,
     Edit3,
+    Save,
+    X,
 } from "lucide-react";
 
 interface LessonWorkspaceProps {
     lesson: {
+        id: string;
         title: string;
         description: string | null;
         youtubeVideoId: string;
         starterCode: string | null;
     };
+    isAdmin?: boolean;
     courseThumbnail: string | null;
     showPaywall: boolean;
     isLoggedIn?: boolean;
@@ -35,6 +40,7 @@ interface LessonWorkspaceProps {
 
 export default function LessonWorkspace({
     lesson,
+    isAdmin = false,
     courseThumbnail,
     showPaywall,
     isLoggedIn,
@@ -45,6 +51,11 @@ export default function LessonWorkspace({
     const [showContent, setShowContent] = useState(true);
     const [showSandbox, setShowSandbox] = useState(hasSandbox);
     const [showWhiteboard, setShowWhiteboard] = useState(false);
+
+    // Admin Editing state
+    const [isEditingNotes, setIsEditingNotes] = useState(false);
+    const [editedDescription, setEditedDescription] = useState(lesson.description || "");
+    const [isSaving, setIsSaving] = useState(false);
 
     // Ensure singleton view on mobile initial load
     useEffect(() => {
@@ -90,6 +101,22 @@ export default function LessonWorkspace({
             const next = !showWhiteboard;
             setShowWhiteboard(next);
             if (!next && !showContent && !showSandbox) setShowContent(true);
+        }
+    };
+
+    const handleSaveNotes = async () => {
+        setIsSaving(true);
+        try {
+            const result = await updateLessonNotes(lesson.id, editedDescription);
+            if (result.success) {
+                setIsEditingNotes(false);
+            } else {
+                alert(result.error);
+            }
+        } catch (error) {
+            alert("Failed to save notes");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -202,10 +229,21 @@ export default function LessonWorkspace({
 
                             {/* Lesson Info */}
                             <div>
-                                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest mb-2">
-                                    <Milestone className="w-4 h-4" />
-                                    Lesson Module
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest">
+                                        <Milestone className="w-4 h-4" />
+                                        Lesson Module
+                                    </div>
+                                    {isAdmin && !isEditingNotes && (
+                                        <button
+                                            onClick={() => setIsEditingNotes(true)}
+                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors uppercase tracking-wider"
+                                        >
+                                            <Edit3 className="w-3 h-3" /> Edit Notes
+                                        </button>
+                                    )}
                                 </div>
+
                                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 text-zinc-900">{lesson.title}</h1>
 
                                 <div className="flex gap-4 mb-6 lg:mb-8 border-b border-zinc-100">
@@ -217,9 +255,41 @@ export default function LessonWorkspace({
                                     </button>
                                 </div>
 
-                                <div className="prose prose-zinc max-w-none prose-p:text-zinc-600 prose-headings:text-zinc-900 prose-sm lg:prose-base">
-                                    {lesson.description || "No specific instructions for this lesson. Watch the video and follow along in the practice editor."}
-                                </div>
+                                {isEditingNotes ? (
+                                    <div className="space-y-4">
+                                        <textarea
+                                            value={editedDescription}
+                                            onChange={(e) => setEditedDescription(e.target.value)}
+                                            className="w-full h-64 p-4 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-zinc-50 font-mono"
+                                            placeholder="Enter lesson notes using markdown..."
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={handleSaveNotes}
+                                                disabled={isSaving}
+                                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md active:scale-95"
+                                            >
+                                                {isSaving ? (
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : <Save className="w-4 h-4" />}
+                                                Save Changes
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIsEditingNotes(false);
+                                                    setEditedDescription(lesson.description || "");
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-600 rounded-lg text-sm font-bold hover:bg-zinc-200 transition-all"
+                                            >
+                                                <X className="w-4 h-4" /> Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="prose prose-zinc max-w-none prose-p:text-zinc-600 prose-headings:text-zinc-900 prose-sm lg:prose-base whitespace-pre-wrap">
+                                        {lesson.description || "No specific instructions for this lesson. Watch the video and follow along in the practice editor."}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

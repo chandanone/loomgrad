@@ -29,8 +29,12 @@ export async function POST(req: NextRequest) {
 
             // Extract from notes (most reliable as we set these in createRazorpayOrder)
             const email = payment.notes?.email || payment.email;
-            const tier = payment.notes?.tier || "MONTHLY";
-            const durationDays = tier === "YEARLY" ? 365 : 30;
+            const tier = payment.notes?.tier;
+            const courseId = payment.notes?.courseId;
+
+            // === DEBUG: log what webhook received ===
+            console.log("[Webhook] payment.captured received. notes:", JSON.stringify(payment.notes));
+            console.log("[Webhook] Extracted → email:", email, "| tier:", tier, "| courseId:", courseId);
 
             // Find user by email (case-insensitive)
             const user = await prisma.user.findFirst({
@@ -43,35 +47,71 @@ export async function POST(req: NextRequest) {
             });
 
             if (user) {
-                const currentEndsAt = user.subscriptionEndsAt && user.subscriptionEndsAt > new Date()
-                    ? user.subscriptionEndsAt
-                    : new Date();
+                let handeled = false;
 
-                const newEndsAt = new Date(currentEndsAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-                await prisma.$transaction([
-                    prisma.user.update({
-                        where: { id: user.id },
-                        data: {
-                            isSubscribed: true,
-                            subscriptionTier: tier as any,
-                            subscriptionEndsAt: newEndsAt,
+                // 1. Handle Course Access (One-time purchase)
+                if (courseId) {
+                    await (prisma.courseAccess as any).upsert({
+                        where: {
+                            userId_courseId: {
+                                userId: user.id,
+                                courseId: courseId
+                            }
                         },
-                    }),
-                    prisma.subscription.create({
-                        data: {
+                        update: {
+                            expiresAt: null, // Lifetime access for one-time purchase
+                        },
+                        create: {
                             userId: user.id,
-                            plan: tier as any,
-                            startDate: currentEndsAt,
-                            endDate: newEndsAt,
-                            razorpayPaymentId: payment.id,
-                            razorpayOrderId: payment.order_id,
-                            status: "ACTIVE"
+                            courseId: courseId,
+                            expiresAt: null,
                         }
-                    })
-                ]);
+                    });
+                    console.log(`[Webhook] Granted access to course ${courseId} for user ${email}`);
+                    handeled = true;
+                }
+
+                // 2. Handle Subscription
+                if (tier) {
+                    const activeTier = tier;
+                    const durationDays = activeTier === "YEARLY" ? 365 : 30;
+
+                    const currentEndsAt = user.subscriptionEndsAt && user.subscriptionEndsAt > new Date()
+                        ? user.subscriptionEndsAt
+                        : new Date();
+
+                    const newEndsAt = new Date(currentEndsAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+                    await prisma.$transaction([
+                        prisma.user.update({
+                            where: { id: user.id },
+                            data: {
+                                isSubscribed: true,
+                                subscriptionTier: activeTier as any,
+                                subscriptionEndsAt: newEndsAt,
+                            },
+                        }),
+                        prisma.subscription.create({
+                            data: {
+                                userId: user.id,
+                                plan: activeTier as any,
+                                startDate: currentEndsAt,
+                                endDate: newEndsAt,
+                                razorpayPaymentId: payment.id,
+                                razorpayOrderId: payment.order_id,
+                                status: "ACTIVE"
+                            }
+                        })
+                    ]);
+                    console.log(`[Webhook] Activated ${activeTier} subscription for user ${email}`);
+                    handeled = true;
+                }
+
+                if (!handeled) {
+                    console.warn(`[Webhook] Payment received with no tier or courseId in notes for ${email}. Amount: ${payment.amount}`);
+                }
             } else {
-                console.error(`User not found for email: ${email}`);
+                console.error(`[Webhook] User not found for email: ${email}`);
             }
         }
 

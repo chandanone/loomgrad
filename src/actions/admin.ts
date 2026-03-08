@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { getPlaylistMetadata, getPlaylistVideos } from "@/lib/youtube";
 import { revalidatePath } from "next/cache";
 
@@ -315,5 +316,26 @@ export async function rearrangeModules(courseId: string, items: { moduleId: stri
     } catch (error: any) {
         console.error("Failed to rearrange modules:", error);
         return { success: false, error: "Failed to rearrange modules" };
+    }
+}
+
+export async function updateLessonNotes(lessonId: string, description: string) {
+    try {
+        const session = await auth();
+        if (session?.user?.role !== "ADMIN") {
+            throw new Error("Unauthorized");
+        }
+
+        const lesson = await prisma.lesson.update({
+            where: { id: lessonId },
+            data: { description },
+            include: { module: { include: { course: true } } }
+        });
+
+        revalidatePath(`/courses/${lesson.module.course.slug}/lessons/${lesson.slug}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to update lesson notes:", error);
+        return { success: false, error: error.message || "Failed to update lesson notes" };
     }
 }

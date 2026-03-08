@@ -75,6 +75,9 @@ export async function createRazorpayOrder(options: {
             notes: notes,
         };
 
+        // === DEBUG: log the notes going into the order ===
+        console.log("[createRazorpayOrder] Creating order with notes:", JSON.stringify(notes));
+
         const order = await razorpay.orders.create(razorpayOptions);
         return {
             success: true,
@@ -106,6 +109,9 @@ export async function verifyPayment(paymentData: {
 
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tier, courseId } = paymentData;
 
+        // === DEBUG: log what verifyPayment received ===
+        console.log("[verifyPayment] Called with:", JSON.stringify({ tier, courseId, razorpay_order_id }));
+
         // Verify signature
         const text = razorpay_order_id + "|" + razorpay_payment_id;
         const generated_signature = crypto
@@ -132,6 +138,7 @@ export async function verifyPayment(paymentData: {
         }
 
         if (tier) {
+            console.log("[verifyPayment] >>> Taking SUBSCRIPTION path. tier =", tier);
             const durationDays = tier === SubscriptionTier.YEARLY ? 365 : 30;
             const currentEndsAt = dbUser.subscriptionEndsAt && dbUser.subscriptionEndsAt > new Date()
                 ? dbUser.subscriptionEndsAt
@@ -161,7 +168,7 @@ export async function verifyPayment(paymentData: {
                 })
             ]);
         } else if (courseId) {
-            // Grant course access for one-time purchase
+            console.log("[verifyPayment] >>> Taking COURSE ACCESS path. courseId =", courseId);
             await (prisma.courseAccess as any).upsert({
                 where: {
                     userId_courseId: {
@@ -178,6 +185,8 @@ export async function verifyPayment(paymentData: {
                     expiresAt: null as any
                 }
             });
+        } else {
+            console.warn("[verifyPayment] >>> Neither tier nor courseId was provided! No action taken. paymentData:", JSON.stringify(paymentData));
         }
 
         return { success: true };

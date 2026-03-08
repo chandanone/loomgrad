@@ -60,7 +60,7 @@ export default async function LessonPage({
         (new Date().getTime() - new Date(course.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
     const hasCourseAccess = !!user?.courseAccess?.some((access: any) =>
-        access.courseId === course.id && new Date(access.expiresAt) > new Date()
+        access.courseId === course.id && (access.expiresAt === null || new Date(access.expiresAt) > new Date())
     );
 
     const hasCourseAccessTotal = isAdmin || isSubscribed || isTrialActive || hasCourseAccess;
@@ -92,11 +92,13 @@ export default async function LessonPage({
                 {/* Workspace */}
                 <LessonWorkspace
                     lesson={{
+                        id: lesson.id,
                         title: lesson.title,
                         description: lesson.description,
                         youtubeVideoId: lesson.youtubeVideoId,
                         starterCode: lesson.starterCode,
                     }}
+                    isAdmin={isAdmin}
                     courseThumbnail={course.thumbnail}
                     showPaywall={showPaywall}
                     isLoggedIn={!!session?.user}
