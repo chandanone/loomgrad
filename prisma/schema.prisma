@@ -13,6 +13,18 @@ enum UserRole {
   STUDENT
 }
 
+enum ChallengeType {
+  CODING
+  MATH
+}
+
+enum QuestionType {
+  CODING
+  MCQ_SINGLE
+  MCQ_MULTI
+  FILL_BLANK
+}
+
 enum SubscriptionTier {
   FREE
   MONTHLY
@@ -49,6 +61,7 @@ model User {
   // Relations
   progress              Progress[]
   codeSubmissions       CodeSubmission[]
+  challengeSubmissions  ChallengeSubmission[]
   certificates          Certificate[]
   courseAccess          CourseAccess[]
   subscriptions         Subscription[]
@@ -83,13 +96,15 @@ model Course {
   slug              String    @unique
   description       String    @db.Text
   thumbnail         String?
-  youtubePlaylistId String    @unique
+  youtubePlaylistId String?   @unique
   
   // Metadata
   category          String?
   level             CourseLevel @default(BEGINNER)
+  difficultyStars   Int       @default(1)
   language          String    @default("JavaScript")
   isPublished       Boolean   @default(false)
+  isChallengeSet    Boolean   @default(false)
   offerFreeTrial    Boolean   @default(false) // Gives 30 days free access from creation
   price             Float?    @default(0)
   duration          String?   // e.g., "10h 30m"
@@ -104,7 +119,7 @@ model Course {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  @@index([slug, isPublished])
+  @@index([slug, isPublished, isChallengeSet])
 }
 
 model Module {
@@ -126,7 +141,7 @@ model Lesson {
   moduleId        String
   title           String
   slug            String
-  youtubeVideoId  String
+  youtubeVideoId  String?
   duration        Int?     // seconds
   description     String?  @db.Text
   notesMarkdown   String?  @db.Text
@@ -136,6 +151,8 @@ model Lesson {
   // Code Challenge
   hasCodeChallenge Boolean  @default(false)
   starterCode      String?  @db.Text
+  hint             String?  @db.Text
+  solution         String?  @db.Text
   
   module          Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress        Progress[]
@@ -224,6 +241,102 @@ model CourseAccess {
 
   @@unique([userId, courseId])
   @@index([userId, expiresAt])
+}
+
+// ─────────────────────────────────────────────
+// STANDALONE CHALLENGE SYSTEM (separate from courses)
+// ─────────────────────────────────────────────
+
+model ChallengeCategory {
+  id             String          @id @default(cuid())
+  title          String
+  slug           String          @unique
+  description    String          @db.Text
+  type           ChallengeType   @default(CODING)
+  difficultyStars Int            @default(1)
+  isPublished    Boolean         @default(false)
+  language       String          @default("JavaScript")
+  helpText       String?         @db.Text
+  orderIndex     Int             @default(0)
+
+  challenges     Challenge[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([slug, isPublished])
+}
+
+model Challenge {
+  id             String            @id @default(cuid())
+  categoryId     String
+  title          String
+  slug           String
+  description    String            @db.Text
+  type           ChallengeType     @default(CODING)
+  questionType   QuestionType      @default(CODING)
+  difficultyStars Int              @default(1)
+  starterCode    String?           @db.Text
+  solution       String?           @db.Text
+  hint           String?           @db.Text
+  correctAnswer  String?           @db.Text  // for FILL_BLANK
+  isPublished    Boolean           @default(true)
+  orderIndex     Int               @default(0)
+
+  category       ChallengeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  testCases      ChallengeTestCase[]
+  options        ChallengeOption[]
+  submissions    ChallengeSubmission[]
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([categoryId, slug])
+  @@unique([categoryId, orderIndex])
+  @@index([categoryId])
+}
+
+model ChallengeOption {
+  id          String    @id @default(cuid())
+  challengeId String
+  text        String    @db.Text
+  isCorrect   Boolean   @default(false)
+  orderIndex  Int
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, orderIndex])
+  @@index([challengeId])
+}
+
+model ChallengeTestCase {
+  id             String    @id @default(cuid())
+  challengeId    String
+  input          String    @db.Text
+  expectedOutput String    @db.Text
+  isHidden       Boolean   @default(false)
+  orderIndex     Int
+
+  challenge      Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, orderIndex])
+}
+
+model ChallengeSubmission {
+  id          String          @id @default(cuid())
+  userId      String
+  challengeId String
+  code        String          @db.Text
+  status      SubmissionStatus
+  passedTests Int             @default(0)
+  totalTests  Int
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge       @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, challengeId])
 }
 
 

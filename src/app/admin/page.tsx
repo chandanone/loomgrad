@@ -6,7 +6,8 @@ import {
     TrendingUp,
     Clock,
     ShieldCheck,
-    ArrowRight
+    ArrowRight,
+    Code2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -138,6 +139,24 @@ export default async function AdminDashboard() {
                                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
                                 >
                                     Manage Access <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col items-start gap-6 group hover:border-blue-500/30 transition-all h-full shadow-sm hover:shadow-md">
+                            <div className="bg-blue-50 p-4 rounded-2xl">
+                                <Code2 className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-bold mb-2">Challenge Manager</h3>
+                                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                                    Create standalone coding & math challenges. Add categories, problems, and test cases.
+                                </p>
+                                <Link
+                                    href="/admin/challenges"
+                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
+                                >
+                                    Manage Challenges <ArrowRight className="w-4 h-4" />
                                 </Link>
                             </div>
                         </div>

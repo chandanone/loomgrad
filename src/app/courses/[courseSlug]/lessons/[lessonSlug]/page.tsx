@@ -41,6 +41,11 @@ export default async function LessonPage({
         where: {
             slug: lessonSlug,
             module: { courseId: course.id }
+        },
+        include: {
+            testCases: {
+                orderBy: { orderIndex: "asc" }
+            }
         }
     });
 
@@ -97,6 +102,7 @@ export default async function LessonPage({
                         description: lesson.description,
                         youtubeVideoId: lesson.youtubeVideoId,
                         starterCode: lesson.starterCode,
+                        testCases: lesson.testCases,
                     }}
                     isAdmin={isAdmin}
                     courseThumbnail={course.thumbnail}
