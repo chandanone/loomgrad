@@ -99,9 +99,9 @@ export default async function LessonPage({
                     lesson={{
                         id: lesson.id,
                         title: lesson.title,
-                        description: lesson.description,
-                        youtubeVideoId: lesson.youtubeVideoId,
-                        starterCode: lesson.starterCode,
+                        description: lesson.description || "",
+                        youtubeVideoId: lesson.youtubeVideoId || "",
+                        starterCode: lesson.starterCode || "",
                         testCases: lesson.testCases,
                     }}
                     isAdmin={isAdmin}
