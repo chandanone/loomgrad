@@ -120,7 +120,7 @@ export default async function CoursesPage() {
                                         <img
                                             src={course.thumbnail}
                                             alt={course.title}
-                                            className={`object-cover w-full h-full transition-all duration-500 ${course.hasAccess ? "group-hover:scale-105" : "grayscale opacity-60"}`}
+                                            className={`object-cover w-full h-full transition-all duration-500 group-hover:scale-105`}
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-zinc-200 flex items-center justify-center">
@@ -156,13 +156,6 @@ export default async function CoursesPage() {
                                         )}
                                     </div>
 
-                                    {!course.hasAccess && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-white/50">
-                                                <Lock className="w-6 h-6 text-zinc-400" />
-                                            </div>
-                                        </div>
-                                    )}
                                     {course.hasProgress && course.hasAccess && (
                                         <div className="absolute inset-x-0 bottom-4 px-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
                                             <div className="flex items-center justify-between gap-3 bg-zinc-900/90 backdrop-blur-lg border border-white/10 p-4 rounded-2xl shadow-2xl">
