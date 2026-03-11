@@ -29,6 +29,7 @@ export default function CodeEditor({
     const [output, setOutput] = useState<{ type: 'log' | 'error', content: string }[]>([]);
     const [showOutput, setShowOutput] = useState(false);
     const outputRef = useRef<HTMLDivElement>(null);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Auto-scroll to bottom of output
     useEffect(() => {
@@ -37,7 +38,27 @@ export default function CodeEditor({
         }
     }, [output]);
 
+    // Message listener for iframe output
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            // Only accept messages from our own window/iframe
+            if (event.data.source === 'loomgrad-sandbox') {
+                const { type, content } = event.data;
+                setOutput(prev => [...prev, { type: type === 'error' ? 'error' : 'log', content }]);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
     const handleRun = async () => {
+        if (language !== "javascript") {
+            setOutput([{ type: 'error', content: `Execution for ${language} is not supported in the browser sandbox yet.` }]);
+            setShowOutput(true);
+            return;
+        }
+
         setShowOutput(true);
         setOutput([]);
 
@@ -46,76 +67,86 @@ export default function CodeEditor({
             return;
         }
 
-        // Default JS execution if no onRun provided
-        if (language === "javascript") {
-            const logs: { type: 'log' | 'error', content: string }[] = [];
+        // --- NEW SECURE IFRAME EXECUTION ---
+        const runnerHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script>
+                    const originalConsole = {
+                        log: console.log,
+                        error: console.error,
+                        warn: console.warn
+                    };
 
-            // Function to add logs and update state safely
-            const addLog = (type: 'log' | 'error', ...args: any[]) => {
-                const content = args.map(arg => {
-                    if (arg === null) return 'null';
-                    if (arg === undefined) return 'undefined';
-                    if (typeof arg === 'object') {
-                        try {
-                            return JSON.stringify(arg, null, 2);
-                        } catch (e) {
-                            return '[Circular Object]';
-                        }
+                    function sendToParent(type, args) {
+                        const content = args.map(arg => {
+                            if (arg === null) return 'null';
+                            if (arg === undefined) return 'undefined';
+                            if (typeof arg === 'object') {
+                                try { return JSON.stringify(arg, null, 2); } 
+                                catch (e) { return '[Circular Object]'; }
+                            }
+                            return String(arg);
+                        }).join(' ');
+                        
+                        window.parent.postMessage({
+                            source: 'loomgrad-sandbox',
+                            type,
+                            content
+                        }, '*');
                     }
-                    return String(arg);
-                }).join(' ');
 
-                logs.push({ type, content });
-                setOutput([...logs]);
-            };
+                    console.log = (...args) => sendToParent('log', args);
+                    console.error = (...args) => sendToParent('error', args);
+                    console.warn = (...args) => sendToParent('log', ['[WARN]', ...args]);
 
-            // Mock console
-            const originalConsole = { ...console };
-            console.log = (...args) => {
-                originalConsole.log(...args); // still log to real console
-                addLog('log', ...args);
-            };
-            console.error = (...args) => {
-                originalConsole.error(...args);
-                addLog('error', ...args);
-            };
-            console.warn = (...args) => {
-                originalConsole.warn(...args);
-                addLog('log', '[WARN]', ...args);
-            };
+                    window.onerror = (message, source, lineno, colno, error) => {
+                        sendToParent('error', [message]);
+                        return true;
+                    };
 
-            try {
-                // Use an async function wrapper to support await
-                // We wrap the user code in an async IIFE
-                const asyncWrapper = `
-                    return (async () => {
-                        ${code}
+                    window.addEventListener('unhandledrejection', (event) => {
+                        sendToParent('error', [event.reason]);
+                    });
+                </script>
+            </head>
+            <body>
+                <script>
+                    (async () => {
+                        try {
+                            const result = await (async () => {
+                                ${code}
+                            })();
+                            if (result !== undefined) {
+                                console.log('Returned:', result);
+                            }
+                        } catch (err) {
+                            console.error(err.stack || err.message || String(err));
+                        }
                     })();
-                `;
+                </script>
+            </body>
+            </html>
+        `;
 
-                const result = await new Function(asyncWrapper)();
-
-                if (result !== undefined) {
-                    addLog('log', 'Returned:', result);
-                }
-            } catch (err: any) {
-                addLog('error', err.stack || err.message || String(err));
-            } finally {
-                // We restore console after a short delay to allow any pending async logs to be captured
-                // This is a trade-off. A better way would be a persistent proxy if the editor is open.
-                setTimeout(() => {
-                    console.log = originalConsole.log;
-                    console.error = originalConsole.error;
-                    console.warn = originalConsole.warn;
-                }, 1000);
-            }
-        } else {
-            setOutput([{ type: 'error', content: `Execution for ${language} is not supported in the browser sandbox yet.` }]);
+        // If iframe exists, refresh it with new code
+        if (iframeRef.current) {
+            const blob = new Blob([runnerHtml], { type: 'text/html' });
+            iframeRef.current.src = URL.createObjectURL(blob);
         }
     };
 
     return (
         <div className="flex flex-col h-full bg-[#1e1e1e] rounded-2xl lg:rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
+            {/* Hidden Sandbox Iframe */}
+            <iframe
+                ref={iframeRef}
+                className="hidden"
+                sandbox="allow-scripts"
+                title="code-sandbox"
+            />
+
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800">
                 <div className="flex items-center gap-2">
@@ -133,6 +164,7 @@ export default function CodeEditor({
                             setCode(initialCode);
                             setOutput([]);
                             setShowOutput(false);
+                            if (iframeRef.current) iframeRef.current.src = "about:blank";
                         }}
                         className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors group"
                         title="Reset Code"
@@ -198,7 +230,7 @@ export default function CodeEditor({
                             className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-2 selection:bg-blue-500/30"
                         >
                             {output.length === 0 ? (
-                                <div className="text-zinc-600 italic">No output...</div>
+                                <div className="text-zinc-600 italic animate-pulse">Running code...</div>
                             ) : (
                                 output.map((log, i) => (
                                     <div key={i} className={`flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300`}>
