@@ -49,8 +49,8 @@ export default function Navbar() {
 
     const adminLinks = [
         { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+        { name: "Create Course", href: "/admin/import", icon: Youtube },
         { name: "Manage Courses", href: "/admin/courses", icon: BookOpen },
-        { name: "Import YouTube", href: "/admin/import", icon: Youtube },
         { name: "Settings", href: "/admin/settings", icon: Settings },
     ];
 
