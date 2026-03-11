@@ -28,6 +28,10 @@ interface LessonWorkspaceProps {
         description: string | null;
         youtubeVideoId: string;
         starterCode: string | null;
+        testCases?: {
+            input: string;
+            expectedOutput: string;
+        }[];
     };
     isAdmin?: boolean;
     courseThumbnail: string | null;
@@ -216,11 +220,13 @@ export default function LessonWorkspace({
                                 {showPaywall ? (
                                     <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center">
                                         <Paywall isLoggedIn={isLoggedIn} courseOffersTrial={courseOffersTrial} />
-                                        <img
-                                            src={courseThumbnail || ""}
-                                            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-10"
-                                            alt="blurred background"
-                                        />
+                                        {courseThumbnail && (
+                                            <img
+                                                src={courseThumbnail}
+                                                className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-10"
+                                                alt="blurred background"
+                                            />
+                                        )}
                                     </div>
                                 ) : (
                                     <VideoPlayer videoId={lesson.youtubeVideoId} />
@@ -311,6 +317,7 @@ export default function LessonWorkspace({
                                 <CodeEditor
                                     initialCode={lesson.starterCode || `// Practice: ${lesson.title}\n\nfunction solution() {\n  // Type your code here\n}\n`}
                                     language="javascript"
+                                    testCases={lesson.testCases}
                                 />
                             </div>
                         </div>

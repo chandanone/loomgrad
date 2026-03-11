@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
-import { Play, RotateCcw, Loader2, Terminal, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, RotateCcw, Loader2, Terminal, XCircle, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 
 // Dynamically import Monaco Editor to avoid SSR issues and DOMExceptions
 const Editor = dynamic(() => import("@monaco-editor/react"), {
@@ -18,15 +18,20 @@ interface CodeEditorProps {
     initialCode?: string;
     language?: string;
     onRun?: (code: string) => void;
+    testCases?: {
+        input: string;
+        expectedOutput: string;
+    }[];
 }
 
 export default function CodeEditor({
     initialCode = "// Write your code here...",
     language = "javascript",
-    onRun
+    onRun,
+    testCases
 }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
-    const [output, setOutput] = useState<{ type: 'log' | 'error', content: string }[]>([]);
+    const [output, setOutput] = useState<{ type: 'log' | 'error' | 'test', content: any }[]>([]);
     const [showOutput, setShowOutput] = useState(false);
     const outputRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -44,7 +49,7 @@ export default function CodeEditor({
             // Only accept messages from our own window/iframe
             if (event.data.source === 'loomgrad-sandbox') {
                 const { type, content } = event.data;
-                setOutput(prev => [...prev, { type: type === 'error' ? 'error' : 'log', content }]);
+                setOutput(prev => [...prev, { type: type === 'error' ? 'error' : (type === 'test' ? 'test' : 'log'), content }]);
             }
         };
 
@@ -68,6 +73,9 @@ export default function CodeEditor({
         }
 
         // --- NEW SECURE IFRAME EXECUTION ---
+        const cleanCode = code.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+        const functionName = cleanCode.match(/function\s+(\w+)/)?.[1] || "";
+
         const runnerHtml = `
             <!DOCTYPE html>
             <html>
@@ -79,17 +87,7 @@ export default function CodeEditor({
                         warn: console.warn
                     };
 
-                    function sendToParent(type, args) {
-                        const content = args.map(arg => {
-                            if (arg === null) return 'null';
-                            if (arg === undefined) return 'undefined';
-                            if (typeof arg === 'object') {
-                                try { return JSON.stringify(arg, null, 2); } 
-                                catch (e) { return '[Circular Object]'; }
-                            }
-                            return String(arg);
-                        }).join(' ');
-                        
+                    function sendToParent(type, content) {
                         window.parent.postMessage({
                             source: 'loomgrad-sandbox',
                             type,
@@ -97,29 +95,69 @@ export default function CodeEditor({
                         }, '*');
                     }
 
-                    console.log = (...args) => sendToParent('log', args);
-                    console.error = (...args) => sendToParent('error', args);
-                    console.warn = (...args) => sendToParent('log', ['[WARN]', ...args]);
+                    function formatArg(arg) {
+                        if (arg === null) return 'null';
+                        if (arg === undefined) return 'undefined';
+                        if (typeof arg === 'object') {
+                            try { return JSON.stringify(arg); } 
+                            catch (e) { return '[Circular]'; }
+                        }
+                        return String(arg);
+                    }
 
-                    window.onerror = (message, source, lineno, colno, error) => {
-                        sendToParent('error', [message]);
+                    console.log = (...args) => sendToParent('log', args.map(formatArg).join(' '));
+                    console.error = (...args) => sendToParent('error', args.map(formatArg).join(' '));
+                    console.warn = (...args) => sendToParent('log', '[WARN] ' + args.map(formatArg).join(' '));
+
+                    window.onerror = (message) => {
+                        sendToParent('error', message);
                         return true;
                     };
-
-                    window.addEventListener('unhandledrejection', (event) => {
-                        sendToParent('error', [event.reason]);
-                    });
                 </script>
             </head>
             <body>
                 <script>
+                    ${code}
+                </script>
+                <script>
                     (async () => {
                         try {
-                            const result = await (async () => {
-                                ${code}
-                            })();
-                            if (result !== undefined) {
-                                console.log('Returned:', result);
+                            const functionName = '${functionName}';
+                            const tests = ${JSON.stringify(testCases || [])};
+                            
+                            // Find the function in the global scope
+                            const target = window[functionName];
+
+                            if (tests.length > 0 && typeof target === 'function') {
+                                const results = [];
+                                for (const test of tests) {
+                                    try {
+                                        const args = eval('[' + test.input + ']');
+                                        const actual = target(...args);
+                                        const expected = eval(test.expectedOutput);
+                                        
+                                        results.push({
+                                            input: test.input,
+                                            expected: test.expectedOutput,
+                                            actual: formatArg(actual),
+                                            passed: JSON.stringify(actual) === JSON.stringify(expected)
+                                        });
+                                    } catch (e) {
+                                        results.push({
+                                            input: test.input,
+                                            expected: test.expectedOutput,
+                                            actual: 'Error: ' + e.message,
+                                            passed: false
+                                        });
+                                    }
+                                }
+                                sendToParent('test', results);
+                            } else if (tests.length > 0) {
+                                if (!functionName) {
+                                    console.error("No function detected. Please use: function name() { ... }");
+                                } else {
+                                    console.error("Function '" + functionName + "' not found. Make sure it's defined at the top level.");
+                                }
                             }
                         } catch (err) {
                             console.error(err.stack || err.message || String(err));
@@ -232,15 +270,58 @@ export default function CodeEditor({
                             {output.length === 0 ? (
                                 <div className="text-zinc-600 italic animate-pulse">Running code...</div>
                             ) : (
-                                output.map((log, i) => (
-                                    <div key={i} className={`flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300`}>
-                                        <span className="text-zinc-600 shrink-0 select-none">{i + 1}</span>
-                                        <div className={log.type === 'error' ? "text-red-400" : "text-zinc-300 whitespace-pre-wrap"}>
-                                            {log.type === 'error' && <XCircle className="w-4 h-4 inline mr-2 -mt-0.5" />}
-                                            {log.content}
+                                <div className="space-y-4">
+                                    {/* Normal Logs */}
+                                    {output.filter(o => o.type !== 'test').map((log, i) => (
+                                        <div key={i} className={`flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300`}>
+                                            <span className="text-zinc-600 shrink-0 select-none text-[10px] w-4">{i + 1}</span>
+                                            <div className={log.type === 'error' ? "text-red-400" : "text-zinc-300 whitespace-pre-wrap"}>
+                                                {log.type === 'error' && <XCircle className="w-4 h-4 inline mr-2 -mt-0.5" />}
+                                                {log.content}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+
+                                    {/* Test Results */}
+                                    {output.map((o, idx) => o.type === 'test' && (
+                                        <div key={`test-${idx}`} className="mt-4 border border-zinc-800 rounded-xl overflow-hidden animate-in zoom-in-95 duration-500">
+                                            <div className="bg-zinc-900/80 px-4 py-2 border-b border-zinc-800 flex justify-between items-center">
+                                                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Test Suite Results</span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">
+                                                    {o.content.filter((r: any) => r.passed).length} / {o.content.length} Passed
+                                                </span>
+                                            </div>
+                                            <div className="p-0 overflow-x-auto">
+                                                <table className="w-full text-left border-collapse">
+                                                    <thead>
+                                                        <tr className="text-[10px] uppercase text-zinc-500 border-b border-zinc-800">
+                                                            <th className="px-4 py-2 font-bold">Input</th>
+                                                            <th className="px-4 py-2 font-bold">Expected</th>
+                                                            <th className="px-4 py-2 font-bold">Actual</th>
+                                                            <th className="px-4 py-2 font-bold text-center">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="text-[11px] font-mono">
+                                                        {o.content.map((res: any, i: number) => (
+                                                            <tr key={i} className="border-b border-zinc-900/50 hover:bg-zinc-900/30 transition-colors">
+                                                                <td className="px-4 py-2 text-zinc-400">({res.input})</td>
+                                                                <td className="px-4 py-2 text-blue-400">{res.expected}</td>
+                                                                <td className={`px-4 py-2 ${res.passed ? "text-green-400" : "text-red-400"}`}>{res.actual}</td>
+                                                                <td className="px-4 py-2 text-center">
+                                                                    {res.passed ? (
+                                                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mx-auto" />
+                                                                    ) : (
+                                                                        <XCircle className="w-3.5 h-3.5 text-red-500 mx-auto" />
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>
