@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { Play, RotateCcw, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Play, RotateCcw, Loader2, Terminal, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 // Dynamically import Monaco Editor to avoid SSR issues and DOMExceptions
 const Editor = dynamic(() => import("@monaco-editor/react"), {
@@ -26,9 +26,96 @@ export default function CodeEditor({
     onRun
 }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
+    const [output, setOutput] = useState<{ type: 'log' | 'error', content: string }[]>([]);
+    const [showOutput, setShowOutput] = useState(false);
+    const outputRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom of output
+    useEffect(() => {
+        if (outputRef.current) {
+            outputRef.current.scrollTop = outputRef.current.scrollHeight;
+        }
+    }, [output]);
+
+    const handleRun = async () => {
+        setShowOutput(true);
+        setOutput([]);
+
+        if (onRun) {
+            onRun(code);
+            return;
+        }
+
+        // Default JS execution if no onRun provided
+        if (language === "javascript") {
+            const logs: { type: 'log' | 'error', content: string }[] = [];
+
+            // Function to add logs and update state safely
+            const addLog = (type: 'log' | 'error', ...args: any[]) => {
+                const content = args.map(arg => {
+                    if (arg === null) return 'null';
+                    if (arg === undefined) return 'undefined';
+                    if (typeof arg === 'object') {
+                        try {
+                            return JSON.stringify(arg, null, 2);
+                        } catch (e) {
+                            return '[Circular Object]';
+                        }
+                    }
+                    return String(arg);
+                }).join(' ');
+
+                logs.push({ type, content });
+                setOutput([...logs]);
+            };
+
+            // Mock console
+            const originalConsole = { ...console };
+            console.log = (...args) => {
+                originalConsole.log(...args); // still log to real console
+                addLog('log', ...args);
+            };
+            console.error = (...args) => {
+                originalConsole.error(...args);
+                addLog('error', ...args);
+            };
+            console.warn = (...args) => {
+                originalConsole.warn(...args);
+                addLog('log', '[WARN]', ...args);
+            };
+
+            try {
+                // Use an async function wrapper to support await
+                // We wrap the user code in an async IIFE
+                const asyncWrapper = `
+                    return (async () => {
+                        ${code}
+                    })();
+                `;
+
+                const result = await new Function(asyncWrapper)();
+
+                if (result !== undefined) {
+                    addLog('log', 'Returned:', result);
+                }
+            } catch (err: any) {
+                addLog('error', err.stack || err.message || String(err));
+            } finally {
+                // We restore console after a short delay to allow any pending async logs to be captured
+                // This is a trade-off. A better way would be a persistent proxy if the editor is open.
+                setTimeout(() => {
+                    console.log = originalConsole.log;
+                    console.error = originalConsole.error;
+                    console.warn = originalConsole.warn;
+                }, 1000);
+            }
+        } else {
+            setOutput([{ type: 'error', content: `Execution for ${language} is not supported in the browser sandbox yet.` }]);
+        }
+    };
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-2xl overflow-hidden border border-zinc-800">
+        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-2xl lg:rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800">
                 <div className="flex items-center gap-2">
@@ -37,20 +124,24 @@ export default function CodeEditor({
                         <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                         <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
                     </div>
-                    <span className="text-xs font-mono text-zinc-500 ml-2 uppercase tracking-widest">{language}</span>
+                    <span className="text-[10px] font-bold font-mono text-zinc-500 ml-2 uppercase tracking-[0.2em]">{language}</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setCode(initialCode)}
-                        className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors"
+                        onClick={() => {
+                            setCode(initialCode);
+                            setOutput([]);
+                            setShowOutput(false);
+                        }}
+                        className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors group"
                         title="Reset Code"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-4 h-4 group-active:rotate-180 transition-transform duration-500" />
                     </button>
                     <button
-                        onClick={() => onRun?.(code)}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-all active:scale-95"
+                        onClick={handleRun}
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-green-900/20"
                     >
                         <Play className="w-3.5 h-3.5 fill-current" />
                         RUN CODE
@@ -58,9 +149,9 @@ export default function CodeEditor({
                 </div>
             </div>
 
-            {/* Editor Container - using a relative wrapper to prevent Monaco focus/offset errors during layout shifts */}
+            {/* Editor Container */}
             <div className="flex-1 relative min-h-0 min-w-0">
-                <div className="absolute inset-0">
+                <div className={`absolute inset-0 transition-all duration-300 ${showOutput ? "bottom-1/3" : "bottom-0"}`}>
                     <Editor
                         height="100%"
                         defaultLanguage={language}
@@ -74,7 +165,7 @@ export default function CodeEditor({
                             scrollBeyondLastLine: false,
                             lineNumbers: "on",
                             roundedSelection: true,
-                            automaticLayout: true, // Crucial for resizing
+                            automaticLayout: true,
                             fontFamily: "var(--font-geist-mono), monospace",
                             smoothScrolling: true,
                             contextmenu: false,
@@ -86,6 +177,54 @@ export default function CodeEditor({
                         }}
                     />
                 </div>
+
+                {/* Output Panel */}
+                {showOutput && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-zinc-950 border-t border-zinc-800 flex flex-col z-10">
+                        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/50 border-b border-zinc-800">
+                            <div className="flex items-center gap-2 text-zinc-400">
+                                <Terminal className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Console Output</span>
+                            </div>
+                            <button
+                                onClick={() => setShowOutput(false)}
+                                className="p-1 hover:bg-zinc-800 rounded text-zinc-500 transition-colors"
+                            >
+                                <ChevronDown className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div
+                            ref={outputRef}
+                            className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-2 selection:bg-blue-500/30"
+                        >
+                            {output.length === 0 ? (
+                                <div className="text-zinc-600 italic">No output...</div>
+                            ) : (
+                                output.map((log, i) => (
+                                    <div key={i} className={`flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300`}>
+                                        <span className="text-zinc-600 shrink-0 select-none">{i + 1}</span>
+                                        <div className={log.type === 'error' ? "text-red-400" : "text-zinc-300 whitespace-pre-wrap"}>
+                                            {log.type === 'error' && <XCircle className="w-4 h-4 inline mr-2 -mt-0.5" />}
+                                            {log.content}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Toggle Output Button (when hidden) */}
+                {!showOutput && output.length > 0 && (
+                    <button
+                        onClick={() => setShowOutput(true)}
+                        className="absolute bottom-4 right-4 flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 transition-all shadow-xl z-20"
+                    >
+                        <Terminal className="w-3.5 h-3.5" />
+                        SHOW OUTPUT ({output.length})
+                        <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </div>
         </div>
     );
