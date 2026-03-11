@@ -64,6 +64,7 @@ export default async function ChallengeSolvePage({
             {/* Solver workspace */}
             <div className="flex-1 min-h-0">
                 <ChallengeSolver
+                    id={challenge.id}
                     title={challenge.title}
                     description={challenge.description}
                     questionType={challenge.questionType}

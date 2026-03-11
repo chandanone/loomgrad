@@ -234,3 +234,29 @@ export async function deleteChallenge(challengeId: string, categoryId: string) {
     revalidatePath(`/admin/challenges/${categoryId}`);
     revalidatePath("/challenges");
 }
+
+export async function submitChallengeResult(
+    challengeId: string,
+    status: "PASSED" | "FAILED",
+    code: string,
+    passedTests: number = 0,
+    totalTests: number = 0
+) {
+    const session = await auth();
+    if (!session?.user?.id) return; // Ignore if not logged in
+
+    const userId = session.user.id;
+
+    await prisma.challengeSubmission.create({
+        data: {
+            userId,
+            challengeId,
+            status,
+            code: code || "",
+            passedTests,
+            totalTests,
+        }
+    });
+
+    revalidatePath("/challenges");
+}

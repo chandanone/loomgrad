@@ -19,8 +19,7 @@ export default async function ChallengesPage() {
                     submissions: session?.user?.id
                         ? {
                             where: { userId: session.user.id },
-                            orderBy: { createdAt: "desc" },
-                            take: 1,
+                            select: { status: true }
                         }
                         : false,
                 }
@@ -30,7 +29,7 @@ export default async function ChallengesPage() {
 
     const totalChallenges = categories.reduce((a, c) => a + c.challenges.length, 0);
     const totalSolved = session?.user?.id
-        ? categories.reduce((a, c) => a + c.challenges.filter(ch => (ch.submissions as any[])?.[0]?.status === "PASSED").length, 0)
+        ? categories.reduce((a, c) => a + c.challenges.filter(ch => (ch.submissions as any[])?.some(s => s.status === "PASSED")).length, 0)
         : 0;
 
     return (
@@ -87,7 +86,7 @@ export default async function ChallengesPage() {
                     <div className="space-y-12">
                         {categories.map((category) => {
                             const solved = (category.challenges as any[]).filter(
-                                ch => (ch.submissions as any[])?.[0]?.status === "PASSED"
+                                ch => (ch.submissions as any[])?.some(s => s.status === "PASSED")
                             ).length;
                             const total = category.challenges.length;
 
@@ -97,8 +96,8 @@ export default async function ChallengesPage() {
                                     <div className="flex items-start justify-between mb-6 pb-5 border-b border-zinc-100">
                                         <div className="flex items-center gap-4">
                                             <div className={`p-3 rounded-2xl ${category.type === "MATH"
-                                                    ? "bg-amber-50 text-amber-600"
-                                                    : "bg-blue-50 text-blue-600"
+                                                ? "bg-amber-50 text-amber-600"
+                                                : "bg-blue-50 text-blue-600"
                                                 }`}>
                                                 {category.type === "MATH"
                                                     ? <Calculator className="w-6 h-6" />
@@ -113,8 +112,8 @@ export default async function ChallengesPage() {
                                                             <Star
                                                                 key={i}
                                                                 className={`w-4 h-4 ${i < category.difficultyStars
-                                                                        ? "fill-amber-400 text-amber-400"
-                                                                        : "text-zinc-200"
+                                                                    ? "fill-amber-400 text-amber-400"
+                                                                    : "text-zinc-200"
                                                                     }`}
                                                             />
                                                         ))}
@@ -140,7 +139,7 @@ export default async function ChallengesPage() {
                                     {/* Problem Grid — CodingBat style */}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                         {category.challenges.map((challenge) => {
-                                            const passed = (challenge.submissions as any[])?.[0]?.status === "PASSED";
+                                            const passed = (challenge.submissions as any[])?.some(s => s.status === "PASSED");
                                             const attempted = (challenge.submissions as any[])?.length > 0;
 
                                             return (
@@ -148,10 +147,10 @@ export default async function ChallengesPage() {
                                                     key={challenge.id}
                                                     href={`/challenges/${category.slug}/${challenge.slug}`}
                                                     className={`group/card relative flex flex-col gap-2 p-4 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${passed
-                                                            ? "bg-green-50 border-green-200 hover:border-green-300"
-                                                            : attempted
-                                                                ? "bg-amber-50 border-amber-200 hover:border-amber-300"
-                                                                : "bg-zinc-50 border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30"
+                                                        ? "bg-green-50 border-green-200 hover:border-green-300"
+                                                        : attempted
+                                                            ? "bg-amber-50 border-amber-200 hover:border-amber-300"
+                                                            : "bg-zinc-50 border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30"
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-between">

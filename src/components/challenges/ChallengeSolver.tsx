@@ -6,6 +6,7 @@ import {
     Play, RotateCcw, Loader2, Terminal, XCircle,
     ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BookOpen, Star, CheckSquare, Circle
 } from "lucide-react";
+import { submitChallengeResult } from "@/actions/challenges";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
     ssr: false,
@@ -22,6 +23,7 @@ interface TestCase { input: string; expectedOutput: string; }
 interface MCQOption { id: string; text: string; isCorrect: boolean; }
 
 interface ChallengeSolverProps {
+    id: string;
     title: string;
     description: string;
     questionType: QuestionType;
@@ -36,7 +38,7 @@ interface ChallengeSolverProps {
 }
 
 export function ChallengeSolver({
-    title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars,
+    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars,
 }: ChallengeSolverProps) {
     // Shared State
     const [showHint, setShowHint] = useState(false);
@@ -71,14 +73,19 @@ export function ChallengeSolver({
                 }]);
                 if (type === "test") {
                     const passed = content.every((r: any) => r.passed);
+                    const passedCount = content.filter((r: any) => r.passed).length;
+                    const totalCount = content.length;
                     setAllPassed(passed);
                     setIsSubmitted(true);
+
+                    // Save result to server
+                    submitChallengeResult(id, passed ? "PASSED" : "FAILED", code, passedCount, totalCount);
                 }
             }
         };
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, []);
+    }, [id, code]);
 
     // ─── CODING: Run Test Cases ───────────────────────────────────────────
     const handleRunCode = () => {
@@ -140,17 +147,26 @@ export function ChallengeSolver({
     // ─── NON-CODING: Validate Answer ──────────────────────────────────────
     const handleSubmitQuiz = () => {
         setIsSubmitted(true);
+        let passed = false;
+        let submittedCode = "";
+
         if (questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI") {
             const correctIds = new Set(options.filter(o => o.isCorrect).map(o => o.id));
-            const passed =
+            passed =
                 correctIds.size === selectedOptions.size &&
                 [...correctIds].every(id => selectedOptions.has(id));
-            setAllPassed(passed);
+            submittedCode = Array.from(selectedOptions).join(",");
         } else if (questionType === "FILL_BLANK") {
             const normalizedInput = fillAnswer.trim().toLowerCase();
             const normalizedExpected = (correctAnswer || "").trim().toLowerCase();
-            setAllPassed(normalizedInput === normalizedExpected);
+            passed = normalizedInput === normalizedExpected;
+            submittedCode = fillAnswer;
         }
+
+        setAllPassed(passed);
+
+        // Save result to server
+        submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, passed ? 1 : 0, 1);
     };
 
     const handleReset = () => {
@@ -234,8 +250,8 @@ export function ChallengeSolver({
                 {/* Result Banner */}
                 {isSubmitted && (
                     <div className={`mx-6 mt-4 p-4 rounded-xl border ${allPassed
-                            ? "bg-green-50 border-green-200 text-green-700"
-                            : "bg-red-50 border-red-200 text-red-700"
+                        ? "bg-green-50 border-green-200 text-green-700"
+                        : "bg-red-50 border-red-200 text-red-700"
                         }`}>
                         <div className="flex items-center gap-2 font-bold text-sm">
                             {allPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
@@ -436,8 +452,8 @@ export function ChallengeSolver({
                                         disabled={isSubmitted}
                                         placeholder="Your answer..."
                                         className={`w-full max-w-sm mx-auto block text-center border-b-2 bg-transparent text-2xl font-bold py-3 focus:outline-none transition-colors ${isSubmitted
-                                                ? (allPassed ? "border-green-500 text-green-700" : "border-red-500 text-red-600")
-                                                : "border-zinc-300 focus:border-blue-500 text-zinc-900"
+                                            ? (allPassed ? "border-green-500 text-green-700" : "border-red-500 text-red-600")
+                                            : "border-zinc-300 focus:border-blue-500 text-zinc-900"
                                             }`}
                                     />
                                     {isSubmitted && !allPassed && correctAnswer && (
