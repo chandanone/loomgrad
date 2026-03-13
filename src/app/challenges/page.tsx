@@ -83,106 +83,78 @@ export default async function ChallengesPage() {
                         <p className="text-zinc-400 text-sm">Check back soon — the admin is building new problems!</p>
                     </div>
                 ) : (
-                    <div className="space-y-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {categories.map((category) => {
-                            const solved = (category.challenges as any[]).filter(
-                                ch => (ch.submissions as any[])?.some(s => s.status === "PASSED")
-                            ).length;
                             const total = category.challenges.length;
+                            const solved = session?.user?.id
+                                ? category.challenges.filter(ch => (ch.submissions as any[])?.some(s => s.status === "PASSED")).length
+                                : 0;
 
                             return (
-                                <section key={category.id} className="group">
-                                    {/* Category Header */}
-                                    <div className="flex items-start justify-between mb-6 pb-5 border-b border-zinc-100">
+                                <Link
+                                    key={category.id}
+                                    href={`/challenges/${category.slug}`}
+                                    className="group relative flex flex-col p-8 bg-white border border-zinc-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-500 overflow-hidden"
+                                >
+                                    {/* Abstract Background Decoration */}
+                                    <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity duration-500 ${category.type === "MATH" ? "bg-amber-600" : "bg-blue-600"}`} />
+
+                                    <div className="flex items-start justify-between mb-8">
+                                        <div className={`p-4 rounded-2xl shadow-sm ${category.type === "MATH"
+                                            ? "bg-amber-50 text-amber-600"
+                                            : "bg-blue-50 text-blue-600"
+                                            }`}>
+                                            {category.type === "MATH"
+                                                ? <Calculator className="w-8 h-8" />
+                                                : <Code2 className="w-8 h-8" />
+                                            }
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <Star
+                                                    key={i}
+                                                    className={`w-3 h-3 ${i < category.difficultyStars ? "fill-amber-400 text-amber-400" : "text-zinc-200"}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">{category.type}</span>
+                                            {category.classLevel && (
+                                                <span className="text-[10px] font-black uppercase tracking-[0.1em] px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-md">{category.classLevel}</span>
+                                            )}
+                                        </div>
+                                        <h2 className="text-2xl font-black tracking-tight text-zinc-900 group-hover:text-blue-600 transition-colors mb-2">
+                                            {category.title}
+                                        </h2>
+                                        <p className="text-zinc-500 text-sm leading-relaxed line-clamp-2">
+                                            {category.description}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-auto pt-6 border-t border-zinc-50 flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-2xl ${category.type === "MATH"
-                                                ? "bg-amber-50 text-amber-600"
-                                                : "bg-blue-50 text-blue-600"
-                                                }`}>
-                                                {category.type === "MATH"
-                                                    ? <Calculator className="w-6 h-6" />
-                                                    : <Code2 className="w-6 h-6" />
-                                                }
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Problems</span>
+                                                <span className="text-sm font-black text-zinc-900">{total}</span>
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-1.5">
-                                                    <h2 className="text-2xl font-black tracking-tight">{category.title}</h2>
-                                                    <div className="flex items-center gap-0.5">
-                                                        {Array.from({ length: 5 }).map((_, i) => (
-                                                            <Star
-                                                                key={i}
-                                                                className={`w-4 h-4 ${i < category.difficultyStars
-                                                                    ? "fill-amber-400 text-amber-400"
-                                                                    : "text-zinc-200"
-                                                                    }`}
-                                                            />
-                                                        ))}
+                                            {session?.user && (
+                                                <>
+                                                    <div className="w-px h-6 bg-zinc-100" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Progress</span>
+                                                        <span className="text-sm font-black text-green-600">{Math.round((solved / total) * 100) || 0}%</span>
                                                     </div>
-                                                </div>
-                                                <p className="text-zinc-500 text-sm">{category.description}</p>
-                                            </div>
+                                                </>
+                                            )}
                                         </div>
-                                        {session?.user && total > 0 && (
-                                            <div className="text-right shrink-0 ml-4">
-                                                <div className="text-sm font-bold text-zinc-900">{solved} / {total}</div>
-                                                <div className="text-xs text-zinc-400 mb-2">completed</div>
-                                                <div className="w-24 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-green-500 rounded-full transition-all"
-                                                        style={{ width: `${total > 0 ? (solved / total) * 100 : 0}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Problem Grid — CodingBat style */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                        {category.challenges.map((challenge) => {
-                                            const passed = (challenge.submissions as any[])?.some(s => s.status === "PASSED");
-                                            const attempted = (challenge.submissions as any[])?.length > 0;
-
-                                            return (
-                                                <Link
-                                                    key={challenge.id}
-                                                    href={`/challenges/${category.slug}/${challenge.slug}`}
-                                                    className={`group/card relative flex flex-col gap-2 p-4 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${passed
-                                                        ? "bg-green-50 border-green-200 hover:border-green-300"
-                                                        : attempted
-                                                            ? "bg-amber-50 border-amber-200 hover:border-amber-300"
-                                                            : "bg-zinc-50 border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30"
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        {passed ? (
-                                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                                        ) : attempted ? (
-                                                            <Circle className="w-4 h-4 text-amber-400 fill-amber-100" />
-                                                        ) : (
-                                                            <Circle className="w-4 h-4 text-zinc-300" />
-                                                        )}
-                                                        <div className="flex items-center gap-0.5">
-                                                            {Array.from({ length: challenge.difficultyStars }).map((_, i) => (
-                                                                <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <span className="font-bold text-sm leading-tight text-zinc-900 group-hover/card:text-blue-600 transition-colors font-mono">
-                                                        {challenge.title}
-                                                    </span>
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Help section */}
-                                    {category.helpText && (
-                                        <div className="mt-6 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl">
-                                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">💡 Help</p>
-                                            <p className="text-sm text-zinc-600 whitespace-pre-line">{category.helpText}</p>
+                                        <div className="p-2 bg-zinc-50 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                                            <ChevronRight className="w-5 h-5" />
                                         </div>
-                                    )}
-                                </section>
+                                    </div>
+                                </Link>
                             );
                         })}
                     </div>

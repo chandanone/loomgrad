@@ -6,6 +6,7 @@ import {
     CheckCircle2, Circle, Eye, EyeOff, Edit3
 } from "lucide-react";
 import { deleteChallenge, toggleCategoryPublished } from "@/actions/challenges";
+import { BulkUploadExcel } from "@/components/admin/BulkUploadExcel";
 
 export const revalidate = 0;
 
@@ -62,6 +63,7 @@ export default async function CategoryProblemsPage({ params }: { params: Promise
                         >
                             <Edit3 className="w-4 h-4" /> Edit
                         </Link>
+                        <BulkUploadExcel categoryId={categoryId} />
                         <Link
                             href={`/admin/challenges/${categoryId}/new`}
                             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition-all"

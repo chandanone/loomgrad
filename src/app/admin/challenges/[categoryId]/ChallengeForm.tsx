@@ -22,6 +22,7 @@ interface ChallengeFormProps {
         hint?: string;
         correctAnswer?: string;
         isPublished?: boolean;
+        language?: string;
         testCases?: TestCase[];
         options?: MCQOption[];
     };
@@ -114,8 +115,8 @@ export function ChallengeForm({
                             type="button"
                             onClick={() => setQuestionType(qt.value)}
                             className={`flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all text-center ${questionType === qt.value
-                                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                                    : "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                                ? "border-blue-500 bg-blue-50 text-blue-700"
+                                : "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                                 }`}
                         >
                             <span className="text-xl">{qt.label.split(" ")[0]}</span>
@@ -127,12 +128,15 @@ export function ChallengeForm({
             </div>
 
             {/* Shared Meta */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-2">Category Type</label>
+                    <label className="block text-sm font-bold text-zinc-700 mb-2">Challenge Type</label>
                     <select name="type" defaultValue={defaultValues.type || "CODING"} className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="CODING">💻 Coding</option>
                         <option value="MATH">🧮 Math</option>
+                        <option value="CBSE">🏫 CBSE</option>
+                        <option value="ICSE">🏫 ICSE</option>
+                        <option value="JAC_BOARD">🏫 JAC Board</option>
                     </select>
                 </div>
                 <div>
@@ -150,6 +154,15 @@ export function ChallengeForm({
                     <select name="isPublished" defaultValue={defaultValues.isPublished !== false ? "true" : "false"} className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="true">✅ Live</option>
                         <option value="false">🚫 Draft</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-zinc-700 mb-2">Language (Sandbox)</label>
+                    <select name="language" defaultValue={defaultValues.language || "JavaScript"} className="w-full border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="Python">Python</option>
+                        <option value="Java">Java</option>
+                        <option value="TypeScript">TypeScript</option>
                     </select>
                 </div>
             </div>

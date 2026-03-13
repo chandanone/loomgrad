@@ -5,16 +5,21 @@ import { ArrowLeft, Code2, Calculator } from "lucide-react";
 import { ChallengeSolver } from "@/components/challenges/ChallengeSolver";
 
 export default async function ChallengeSolvePage({
-    params
+    params,
+    searchParams
 }: {
-    params: Promise<{ categorySlug: string; challengeSlug: string }>
+    params: Promise<{ categorySlug: string; challengeSlug: string }>;
+    searchParams: Promise<{ timer?: string }>
 }) {
     const { categorySlug, challengeSlug } = await params;
+    const { timer } = await searchParams;
 
     const category = await prisma.challengeCategory.findUnique({
         where: { slug: categorySlug },
     });
     if (!category) notFound();
+
+    const assessmentMode = category.assessmentMode;
 
     const challenge = await prisma.challenge.findFirst({
         where: {
@@ -30,6 +35,40 @@ export default async function ChallengeSolvePage({
 
     if (!challenge) notFound();
 
+    const nextChallenge = await prisma.challenge.findFirst({
+        where: {
+            categoryId: category.id,
+            isPublished: true,
+            orderIndex: {
+                gt: challenge.orderIndex
+            }
+        },
+        orderBy: {
+            orderIndex: 'asc'
+        }
+    });
+
+    const prevChallenge = await prisma.challenge.findFirst({
+        where: {
+            categoryId: category.id,
+            isPublished: true,
+            orderIndex: {
+                lt: challenge.orderIndex
+            }
+        },
+        orderBy: {
+            orderIndex: 'desc'
+        }
+    });
+
+    const nextChallengeUrl = nextChallenge
+        ? `/challenges/${categorySlug}/${nextChallenge.slug}`
+        : undefined;
+
+    const prevChallengeUrl = prevChallenge
+        ? `/challenges/${categorySlug}/${prevChallenge.slug}`
+        : undefined;
+
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden pt-16">
             {/* Top bar */}
@@ -37,12 +76,17 @@ export default async function ChallengeSolvePage({
                 <div className="flex items-center gap-4">
                     <Link
                         href="/challenges"
-                        className="flex items-center gap-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                        className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-600 transition-colors"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Challenges
+                        Challenges
                     </Link>
                     <span className="text-zinc-300">/</span>
-                    <span className="text-sm font-bold text-zinc-500">{category.title}</span>
+                    <Link
+                        href={`/challenges/${categorySlug}`}
+                        className="text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                        {category.title}
+                    </Link>
                     <span className="text-zinc-300">/</span>
                     <span className="text-sm font-bold text-zinc-900 font-mono">{challenge.title}</span>
                 </div>
@@ -52,11 +96,8 @@ export default async function ChallengeSolvePage({
                         ? "bg-amber-50 text-amber-600"
                         : "bg-blue-50 text-blue-600"
                         }`}>
-                        {challenge.type === "MATH"
-                            ? <Calculator className="w-3.5 h-3.5" />
-                            : <Code2 className="w-3.5 h-3.5" />
-                        }
-                        {challenge.type === "MATH" ? "Math" : "Coding"}
+                        {challenge.type === "MATH" ? <Calculator className="w-3.5 h-3.5" /> : challenge.type === "CODING" ? <Code2 className="w-3.5 h-3.5" /> : <Calculator className="w-3.5 h-3.5" />}
+                        {challenge.type === "MATH" ? "Math" : challenge.type === "CODING" ? "Coding" : challenge.type.replace("_", " ")}
                     </div>
                 </div>
             </div>
@@ -74,8 +115,13 @@ export default async function ChallengeSolvePage({
                     testCases={challenge.testCases}
                     options={challenge.options}
                     correctAnswer={challenge.correctAnswer}
-                    language={category.language}
+                    language={challenge.language}
                     difficultyStars={challenge.difficultyStars}
+                    prevChallengeUrl={prevChallengeUrl}
+                    nextChallengeUrl={nextChallengeUrl}
+                    assessmentMode={assessmentMode}
+                    initialTimerLevel={timer}
+                    categorySlug={categorySlug}
                 />
             </div>
         </div>

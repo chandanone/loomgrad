@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
     Play, RotateCcw, Loader2, Terminal, XCircle,
-    ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BookOpen, Star, CheckSquare, Circle
+    ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BookOpen, Star, CheckSquare, Circle,
+    ChevronLeft, ChevronRight, Timer
 } from "lucide-react";
 import { submitChallengeResult } from "@/actions/challenges";
+import { QuizTimer } from "./QuizTimer";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
     ssr: false,
@@ -35,10 +37,15 @@ interface ChallengeSolverProps {
     correctAnswer?: string | null;
     language: string;
     difficultyStars: number;
+    prevChallengeUrl?: string;
+    nextChallengeUrl?: string;
+    assessmentMode?: string;
+    initialTimerLevel?: string;
+    categorySlug: string;
 }
 
 export function ChallengeSolver({
-    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars,
+    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars, prevChallengeUrl, nextChallengeUrl, assessmentMode = "PRACTICE", initialTimerLevel, categorySlug
 }: ChallengeSolverProps) {
     // Shared State
     const [showHint, setShowHint] = useState(false);
@@ -58,6 +65,8 @@ export function ChallengeSolver({
 
     // Fill Blank State
     const [fillAnswer, setFillAnswer] = useState("");
+
+
 
     useEffect(() => {
         if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
@@ -80,6 +89,10 @@ export function ChallengeSolver({
 
                     // Save result to server
                     submitChallengeResult(id, passed ? "PASSED" : "FAILED", code, passedCount, totalCount);
+
+                    if (assessmentMode === "EXAM") {
+                        // In exam mode, we might just hide the instant feedback banner
+                    }
                 }
             }
         };
@@ -218,10 +231,16 @@ export function ChallengeSolver({
             {/* left Panel: Problem Description */}
             <div className="w-full lg:w-[420px] shrink-0 flex flex-col border-r border-zinc-200 overflow-y-auto bg-white">
                 <div className="p-6 border-b border-zinc-100">
-                    <div className="flex items-center gap-2 mb-3">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={`w-4 h-4 ${i < difficultyStars ? "fill-amber-400 text-amber-400" : "text-zinc-200"}`} />
-                        ))}
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className={`w-3.5 h-3.5 ${i < difficultyStars ? "fill-amber-400 text-amber-400" : "text-zinc-200"}`} />
+                            ))}
+                        </div>
+                        <QuizTimer
+                            categorySlug={categorySlug}
+                            initialTimerLevel={initialTimerLevel}
+                        />
                     </div>
                     <h1 className="text-2xl font-black tracking-tight font-mono mb-4 text-zinc-900">{title}</h1>
                     <p className="text-zinc-600 text-sm leading-relaxed whitespace-pre-wrap">{formattedDescription()}</p>
@@ -248,16 +267,26 @@ export function ChallengeSolver({
                 )}
 
                 {/* Result Banner */}
-                {isSubmitted && (
+                {isSubmitted && assessmentMode === "PRACTICE" && (
                     <div className={`mx-6 mt-4 p-4 rounded-xl border ${allPassed
                         ? "bg-green-50 border-green-200 text-green-700"
                         : "bg-red-50 border-red-200 text-red-700"
                         }`}>
-                        <div className="flex items-center gap-2 font-bold text-sm">
-                            {allPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                            {allPassed
-                                ? "Correct! 🎉"
-                                : (questionType === "CODING" ? `${passedCount} / ${totalCount} tests passed` : "Incorrect. Try again!")}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-sm">
+                                {allPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                {allPassed
+                                    ? "Correct! 🎉"
+                                    : (questionType === "CODING" ? `${passedCount} / ${totalCount} tests passed` : "Incorrect. Try again!")}
+                            </div>
+                            {allPassed && nextChallengeUrl && (
+                                <a
+                                    href={nextChallengeUrl}
+                                    className="flex items-center gap-1.5 bg-zinc-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-all active:scale-95 shadow-sm"
+                                >
+                                    Next <Play className="w-3 h-3 fill-current" />
+                                </a>
+                            )}
                         </div>
                     </div>
                 )}
@@ -289,6 +318,27 @@ export function ChallengeSolver({
                         )}
                     </div>
                 )}
+
+                {/* Question Navigation */}
+                <div className="mt-auto p-4 border-t border-zinc-100 bg-zinc-50/50 flex items-center justify-between gap-3">
+                    {prevChallengeUrl ? (
+                        <a
+                            href={prevChallengeUrl}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-zinc-500 hover:text-zinc-900 hover:bg-white transition-all border border-zinc-200"
+                        >
+                            <ChevronLeft className="w-4 h-4" /> Previous
+                        </a>
+                    ) : <div />}
+
+                    {nextChallengeUrl && (
+                        <a
+                            href={nextChallengeUrl}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all border border-blue-100"
+                        >
+                            {allPassed ? "Next Question" : "Skip Question"} <ChevronRight className="w-4 h-4" />
+                        </a>
+                    )}
+                </div>
             </div>
 
             {/* Right panel: Editor OR Quiz Interface */}
@@ -299,7 +349,7 @@ export function ChallengeSolver({
                     <div className="flex flex-col h-full bg-[#1e1e1e]">
                         {/* Toolbar */}
                         <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-4">
                                 <span className="text-[10px] font-mono font-bold text-zinc-500 ml-2 uppercase tracking-widest">{language}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -307,7 +357,7 @@ export function ChallengeSolver({
                                     <RotateCcw className="w-4 h-4" />
                                 </button>
                                 <button onClick={handleRunCode} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-95">
-                                    <Play className="w-3.5 h-3.5 fill-current" /> RUN CODE
+                                    {assessmentMode === "EXAM" ? (allPassed ? "SAVED" : "RUN & SAVE") : <><Play className="w-3.5 h-3.5 fill-current" /> RUN CODE</>}
                                 </button>
                             </div>
                         </div>
@@ -333,9 +383,14 @@ export function ChallengeSolver({
                                     <div className="flex items-center gap-2 text-zinc-400">
                                         <Terminal className="w-3.5 h-3.5" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Output</span>
-                                        {testResults && (
+                                        {testResults && assessmentMode === "PRACTICE" && (
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${allPassed ? "bg-green-500/10 text-green-400" : "bg-amber-500/10 text-amber-400"}`}>
                                                 {passedCount}/{totalCount}
+                                            </span>
+                                        )}
+                                        {testResults && assessmentMode === "EXAM" && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
+                                                Code Executed & Saved
                                             </span>
                                         )}
                                     </div>
@@ -358,7 +413,7 @@ export function ChallengeSolver({
                                                     </div>
                                                 </div>
                                             ))}
-                                            {testResults && (
+                                            {testResults && assessmentMode === "PRACTICE" && (
                                                 <div className="border border-zinc-800 rounded-xl overflow-hidden mt-4">
                                                     <table className="w-full text-left bg-zinc-900/50">
                                                         <thead>
@@ -466,17 +521,17 @@ export function ChallengeSolver({
 
                             {/* Actions */}
                             <div className="pt-8 flex justify-center gap-4">
-                                {isSubmitted ? (
+                                {isSubmitted && assessmentMode === "PRACTICE" ? (
                                     <button onClick={handleReset} className="flex items-center gap-2 bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold px-6 py-3 rounded-xl transition-all">
                                         <RotateCcw className="w-4 h-4" /> Try Again
                                     </button>
                                 ) : (
                                     <button
                                         onClick={handleSubmitQuiz}
-                                        disabled={fillAnswer.length === 0 && selectedOptions.size === 0}
+                                        disabled={isSubmitted && assessmentMode === "EXAM" || (fillAnswer.length === 0 && selectedOptions.size === 0)}
                                         className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-sm"
                                     >
-                                        Submit Answer
+                                        {assessmentMode === "EXAM" ? (isSubmitted ? "SUBMITTED" : "SUBMIT & SAVE") : "Submit Answer"}
                                     </button>
                                 )}
                             </div>

@@ -11,7 +11,10 @@ export default async function EditChallengePage({ params }: { params: Promise<{ 
 
     const challenge = await prisma.challenge.findUnique({
         where: { id: challengeId },
-        include: { testCases: { orderBy: { orderIndex: "asc" } } }
+        include: {
+            testCases: { orderBy: { orderIndex: "asc" } },
+            options: { orderBy: { orderIndex: "asc" } }
+        }
     });
     if (!challenge) notFound();
 
@@ -29,12 +32,16 @@ export default async function EditChallengePage({ params }: { params: Promise<{ 
                         title: challenge.title,
                         description: challenge.description,
                         type: challenge.type,
+                        questionType: challenge.questionType as any,
                         difficultyStars: challenge.difficultyStars,
+                        language: challenge.language,
                         starterCode: challenge.starterCode || "",
                         solution: challenge.solution || "",
                         hint: challenge.hint || "",
+                        correctAnswer: challenge.correctAnswer || "",
                         isPublished: challenge.isPublished,
-                        testCases: challenge.testCases
+                        testCases: challenge.testCases,
+                        options: challenge.options
                     }}
                     action={async (formData) => {
                         "use server";
