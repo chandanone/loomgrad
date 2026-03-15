@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Timer, Zap } from "lucide-react";
+import { ResetProgressButton } from "./ResetProgressButton";
 
 export function InstructionConfig({
     categorySlug,
@@ -80,12 +81,19 @@ export function InstructionConfig({
                 </Link>
 
                 {hasSubmissions && (
-                    <Link
-                        href={`/challenges/${categorySlug}/result`}
-                        className="text-blue-600 font-bold hover:underline py-2"
-                    >
-                        View Previous Result
-                    </Link>
+                    <div className="flex flex-col items-center gap-2">
+                        <Link
+                            href={`/challenges/${categorySlug}/result`}
+                            className="text-blue-600 font-bold hover:underline py-1 text-sm"
+                        >
+                            View Previous Result
+                        </Link>
+                        <ResetProgressButton 
+                            categorySlug={categorySlug} 
+                            variant="minimal" 
+                            label="Clear Past Record & Reset" 
+                        />
+                    </div>
                 )}
 
                 <p className="text-zinc-400 text-xs font-bold mt-2 uppercase tracking-widest text-center">

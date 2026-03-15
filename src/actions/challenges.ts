@@ -275,3 +275,40 @@ export async function submitChallengeResult(
 
     revalidatePath("/challenges");
 }
+
+export async function clearChallengeSubmission(challengeId: string) {
+    const session = await auth();
+    if (!session?.user?.id) return;
+
+    await prisma.challengeSubmission.deleteMany({
+        where: {
+            userId: session.user.id,
+            challengeId: challengeId
+        }
+    });
+
+    revalidatePath("/challenges");
+}
+
+export async function resetCategorySubmissions(categorySlug: string) {
+    const session = await auth();
+    if (!session?.user?.id) return;
+
+    const category = await prisma.challengeCategory.findUnique({
+        where: { slug: categorySlug },
+        include: { challenges: { select: { id: true } } }
+    });
+
+    if (!category) return;
+
+    const challengeIds = category.challenges.map(c => c.id);
+
+    await prisma.challengeSubmission.deleteMany({
+        where: {
+            userId: session.user.id,
+            challengeId: { in: challengeIds }
+        }
+    });
+
+    revalidatePath("/challenges");
+}

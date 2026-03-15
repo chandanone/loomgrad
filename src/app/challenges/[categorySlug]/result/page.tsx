@@ -6,6 +6,7 @@ import {
     CheckCircle2, XCircle, Award, ArrowLeft, 
     BarChart3, Clock, Target, ChevronRight
 } from "lucide-react";
+import { ResetProgressButton } from "@/components/challenges/ResetProgressButton";
 
 export default async function ChallengeResultPage({
     params
@@ -139,6 +140,14 @@ export default async function ChallengeResultPage({
                             >
                                 Re-Attempt <ChevronRight className="w-4 h-4" />
                             </Link>
+                            <div className="mt-3">
+                                <ResetProgressButton 
+                                    categorySlug={categorySlug} 
+                                    variant="danger" 
+                                    label="Reset & Clear Record" 
+                                    redirectTo={`/challenges/${categorySlug}`}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

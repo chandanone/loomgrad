@@ -70,36 +70,6 @@ export default async function ChallengeSolvePage({
 
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden pt-16">
-            {/* Top bar */}
-            <div className="shrink-0 flex items-center justify-between px-6 py-3 border-b border-zinc-200 bg-white/80 backdrop-blur-md z-10">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/challenges"
-                        className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-600 transition-colors"
-                    >
-                        Challenges
-                    </Link>
-                    <span className="text-zinc-300">/</span>
-                    <Link
-                        href={`/challenges/${categorySlug}`}
-                        className="text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
-                    >
-                        {category.title}
-                    </Link>
-                    <span className="text-zinc-300">/</span>
-                    <span className="text-sm font-bold text-zinc-900 font-mono">{challenge.title}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${challenge.type === "MATH"
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-blue-50 text-blue-600"
-                        }`}>
-                        {challenge.type === "MATH" ? <Calculator className="w-3.5 h-3.5" /> : challenge.type === "CODING" ? <Code2 className="w-3.5 h-3.5" /> : <Calculator className="w-3.5 h-3.5" />}
-                        {challenge.type === "MATH" ? "Math" : challenge.type === "CODING" ? "Coding" : challenge.type.replace("_", " ")}
-                    </div>
-                </div>
-            </div>
 
             {/* Solver workspace */}
             <div className="flex-1 min-h-0">
@@ -122,6 +92,8 @@ export default async function ChallengeSolvePage({
                     assessmentMode={assessmentMode}
                     initialTimerLevel={timer}
                     categorySlug={categorySlug}
+                    categoryTitle={category.title}
+                    challengeType={challenge.type}
                     allChallenges={allChallenges.map(c => ({
                         id: c.id,
                         slug: c.slug,

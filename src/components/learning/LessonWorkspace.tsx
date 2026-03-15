@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import VideoPlayer from "@/components/learning/VideoPlayer";
 import CodeEditor from "@/components/learning/CodeEditor";
 import Whiteboard from "@/components/learning/Whiteboard";
@@ -114,11 +115,12 @@ export default function LessonWorkspace({
             const result = await updateLessonNotes(lesson.id, editedDescription);
             if (result.success) {
                 setIsEditingNotes(false);
+                toast.success("Notes saved successfully");
             } else {
-                alert(result.error);
+                toast.error(result.error);
             }
         } catch (error) {
-            alert("Failed to save notes");
+            toast.error("Failed to save notes");
         } finally {
             setIsSaving(false);
         }

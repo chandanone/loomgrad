@@ -6,11 +6,13 @@ import dynamic from "next/dynamic";
 import {
     Play, RotateCcw, Loader2, Terminal, XCircle,
     ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BookOpen, Star, CheckSquare, Circle,
-    ChevronLeft, ChevronRight, Timer, User, Info, HelpCircle, Menu, MoreVertical
+    ChevronLeft, ChevronRight, Timer, User, Info, HelpCircle, Menu, MoreVertical, Calculator, Code2
 } from "lucide-react";
 import Link from "next/link";
-import { submitChallengeResult } from "@/actions/challenges";
+import { submitChallengeResult, clearChallengeSubmission, resetCategorySubmissions } from "@/actions/challenges";
+import { toast } from "sonner";
 import { QuizTimer } from "./QuizTimer";
+import { useFancyConfirm } from "../ui/ConfirmProvider";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
     ssr: false,
@@ -44,6 +46,8 @@ interface ChallengeSolverProps {
     assessmentMode?: string;
     initialTimerLevel?: string;
     categorySlug: string;
+    categoryTitle: string;
+    challengeType: string;
     allChallenges?: { id: string; slug: string; title: string; isAnswered: boolean }[];
     user?: { name: string; image: string | null };
     initialSubmission?: { submittedCode: string; status: string; passedTests: number; totalTests: number } | null;
@@ -51,7 +55,7 @@ interface ChallengeSolverProps {
 }
 
 export function ChallengeSolver({
-    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars, prevChallengeUrl, nextChallengeUrl, assessmentMode = "PRACTICE", initialTimerLevel, categorySlug, allChallenges = [], user = { name: "Guest", image: null }, initialSubmission, isReattempt = false
+    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars, prevChallengeUrl, nextChallengeUrl, assessmentMode = "PRACTICE", initialTimerLevel, categorySlug, categoryTitle, challengeType, allChallenges = [], user = { name: "Guest", image: null }, initialSubmission, isReattempt = false
 }: ChallengeSolverProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -65,6 +69,7 @@ export function ChallengeSolver({
     const [totalTests, setTotalTests] = useState(0);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [currentLanguage, setCurrentLanguage] = useState<"English" | "Hindi">("English");
+    const { confirm: fancyConfirm } = useFancyConfirm();
 
     // Coding State: Reset to starter code
     const [code, setCode] = useState(starterCode);
@@ -73,14 +78,20 @@ export function ChallengeSolver({
     const outputRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    // MCQ State: Always start empty
     const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
     const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
+    const [visited, setVisited] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        const saved = localStorage.getItem(`review_${categorySlug}`);
-        if (saved) setMarkedForReview(new Set(JSON.parse(saved)));
-    }, [categorySlug]);
+        const savedReview = localStorage.getItem(`review_${categorySlug}`);
+        if (savedReview) setMarkedForReview(new Set(JSON.parse(savedReview)));
+
+        const savedVisited = localStorage.getItem(`visited_${categorySlug}`);
+        const visitedSet = new Set(savedVisited ? JSON.parse(savedVisited) : []);
+        visitedSet.add(id);
+        setVisited(visitedSet);
+        localStorage.setItem(`visited_${categorySlug}`, JSON.stringify(Array.from(visitedSet)));
+    }, [categorySlug, id]);
 
     useEffect(() => {
         localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
@@ -92,6 +103,35 @@ export function ChallengeSolver({
     useEffect(() => {
         if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }, [output]);
+
+    useEffect(() => {
+        if (assessmentMode !== "EXAM" || isSubmitted) return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = "Are you sure you want to leave? Your progress will not be saved.";
+            return e.returnValue;
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [assessmentMode, isSubmitted]);
+
+    const handleExit = async (e: React.MouseEvent, href: string) => {
+        if (assessmentMode === "EXAM" && !isSubmitted) {
+            e.preventDefault();
+            const ok = await fancyConfirm({
+                title: "Incomplete Exam",
+                message: "Your exam is still in progress. Are you sure you want to leave? Progress will not be saved.",
+                type: "warning"
+            });
+            if (ok) startTransition(() => router.push(href));
+            return;
+        }
+        startTransition(() => {
+            router.push(href);
+        });
+    };
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -230,25 +270,57 @@ export function ChallengeSolver({
         if (questionType !== "CODING") {
             await handleSubmitQuiz(false);
         }
-        
-        // Show a confirmation if not auto-submitting
-        if (isAuto || confirm("Are you sure you want to submit the exam?")) {
-             // In a real app, we'd trigger a "Finish Attempt" action here
-             router.push(`/challenges/${categorySlug}/result`);
+
+        const proceed = () => {
+            router.push(`/challenges/${categorySlug}/result`);
+        };
+
+        if (isAuto) {
+            proceed();
+        } else {
+            const ok = await fancyConfirm({
+                title: "Finish Exam?",
+                message: "Are you sure you want to submit the exam for final evaluation?",
+                type: "info"
+            });
+            if (ok) proceed();
         }
     };
 
-    const handleReset = () => {
-        setIsSubmitted(false);
-        setAllPassed(false);
-        setShowOutput(false);
-        if (questionType === "CODING") {
-            setCode(starterCode);
-            setOutput([]);
-            if (iframeRef.current) iframeRef.current.src = "about:blank";
-        } else {
-            setSelectedOptions(new Set());
-            setFillAnswer("");
+    const handleReset = async () => {
+        const ok = await fancyConfirm({
+            title: "Reset Question?",
+            message: "Reset current question? This will clear your response and history for this challenge.",
+            type: "warning"
+        });
+
+        if (ok) {
+            setIsSubmitted(false);
+            setAllPassed(false);
+            setShowOutput(false);
+            if (questionType === "CODING") {
+                setCode(starterCode);
+                setOutput([]);
+                if (iframeRef.current) iframeRef.current.src = "about:blank";
+            } else {
+                setSelectedOptions(new Set());
+                setFillAnswer("");
+            }
+            await clearChallengeSubmission(id);
+            router.refresh();
+        }
+    };
+
+    const handleFullTestReset = async () => {
+        const ok = await fancyConfirm({
+            title: "Hard Reset",
+            message: "WARNING: Are you sure you want to reset the ENTIRE test? All progress for this segment will be permanently deleted.",
+            type: "danger"
+        });
+
+        if (ok) {
+            await resetCategorySubmissions(categorySlug);
+            window.location.reload();
         }
     };
 
@@ -292,6 +364,37 @@ export function ChallengeSolver({
 
     return (
         <div className="flex flex-col h-full bg-[#f5f5f5] overflow-hidden">
+            {/* Nav Bar (Formerly in page.tsx) */}
+            <div className="shrink-0 flex items-center justify-between px-6 py-3 border-b border-zinc-200 bg-white z-20">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={(e) => handleExit(e, "/challenges")}
+                        className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-600 transition-colors"
+                    >
+                        Challenges
+                    </button>
+                    <span className="text-zinc-300">/</span>
+                    <button
+                        onClick={(e) => handleExit(e, `/challenges/${categorySlug}`)}
+                        className="text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                        {categoryTitle}
+                    </button>
+                    <span className="text-zinc-300">/</span>
+                    <span className="text-sm font-bold text-zinc-900 font-mono">{title}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${challengeType === "MATH"
+                        ? "bg-amber-50 text-amber-600"
+                        : "bg-blue-50 text-blue-600"
+                        }`}>
+                        {challengeType === "MATH" ? <Calculator className="w-3.5 h-3.5" /> : challengeType === "CODING" ? <Code2 className="w-3.5 h-3.5" /> : <Calculator className="w-3.5 h-3.5" />}
+                        {challengeType === "MATH" ? "Math" : challengeType === "CODING" ? "Coding" : challengeType.replace("_", " ")}
+                    </div>
+                </div>
+            </div>
+
             {questionType === "CODING" && (
                 <iframe ref={iframeRef} className="hidden" sandbox="allow-scripts" title="challenge-sandbox" />
             )}
@@ -342,7 +445,10 @@ export function ChallengeSolver({
                         categorySlug={categorySlug} 
                         initialTimerLevel={initialTimerLevel} 
                         onTimeUp={() => {
-                            alert("Time is up! Your exam will be submitted automatically.");
+                            toast.error("Time is up! Your exam will be submitted automatically.", {
+                                duration: 5000,
+                                position: "top-center"
+                            });
                             handleSubmitExam(true);
                         }}
                     />
@@ -360,10 +466,17 @@ export function ChallengeSolver({
                     let textClass = "text-zinc-600";
                     let shapeClass = "rounded";
 
-                    if (isCurrent) {
-                        bgClass = "bg-[#ee4b2b]";
-                        textClass = "text-white";
-                        shapeClass = "rounded relative after:content-[''] after:absolute after:-bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:border-l-[6px] after:border-l-transparent after:border-r-[6px] after:border-r-transparent after:border-t-[6px] after:border-t-[#ee4b2b]";
+                    if (isCurrent || (isAnswered && !isMarked)) {
+                        // Current or Answered
+                        if (isAnswered) {
+                            bgClass = "bg-[#44a024]";
+                            textClass = "text-white";
+                            shapeClass = "rounded-tl-lg rounded-br-lg";
+                        } else {
+                            bgClass = "bg-[#ee4b2b]";
+                            textClass = "text-white";
+                            shapeClass = "rounded";
+                        }
                     } else if (isAnswered && isMarked) {
                         bgClass = "bg-[#6a5acd]";
                         textClass = "text-white";
@@ -372,10 +485,10 @@ export function ChallengeSolver({
                         bgClass = "bg-[#6a5acd]";
                         textClass = "text-white";
                         shapeClass = "rounded-full";
-                    } else if (isAnswered) {
-                        bgClass = "bg-[#44a024]";
+                    } else if (visited.has(ch.id)) {
+                        bgClass = "bg-[#ee4b2b]";
                         textClass = "text-white";
-                        shapeClass = "rounded-tl-lg rounded-br-lg";
+                        shapeClass = "rounded";
                     }
 
                     return (
@@ -416,7 +529,10 @@ export function ChallengeSolver({
                                     categorySlug={categorySlug} 
                                     initialTimerLevel={initialTimerLevel} 
                                     onTimeUp={() => {
-                                        alert("Time is up! Your exam will be submitted automatically.");
+                                        toast.error("Time is up! Your exam will be submitted automatically.", {
+                                            duration: 5000,
+                                            position: "top-center"
+                                        });
                                         handleSubmitExam(true);
                                     }}
                                 />
@@ -629,18 +745,20 @@ export function ChallengeSolver({
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
                             <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">
-                                    0
+                                    {allChallenges.filter(c => c.isAnswered && !markedForReview.has(c.id)).length}
                                 </div>
                                 <span className="text-zinc-600">Answered</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">
-                                    {allChallenges.length}
+                                    {allChallenges.filter(c => !c.isAnswered && visited.has(c.id) && !markedForReview.has(c.id)).length}
                                 </div>
                                 <span className="text-zinc-600">Not Answered</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">0</div>
+                                <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">
+                                    {allChallenges.filter(c => !visited.has(c.id)).length}
+                                </div>
                                 <span className="text-zinc-600">Not Visited</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -672,7 +790,7 @@ export function ChallengeSolver({
                         <div className="grid grid-cols-4 gap-3">
                             {allChallenges.map((ch, idx) => {
                                 const isCurrent = ch.id === id;
-                                const isAnswered = false; // Always fresh for new attempt
+                                const isAnswered = ch.isAnswered;
                                 const isMarked = markedForReview.has(ch.id);
 
                                 // Determine color coding (Simplified for now)
@@ -692,7 +810,7 @@ export function ChallengeSolver({
                                   bgClass = "bg-[#44a024]";
                                   textClass = "text-white";
                                   shapeClass = "rounded-tl-xl rounded-br-xl";
-                                } else if (isCurrent) {
+                                } else if (visited.has(ch.id)) {
                                   bgClass = "bg-[#ee4b2b]";
                                   textClass = "text-white";
                                   shapeClass = "rounded-tr-xl rounded-bl-xl";
@@ -766,21 +884,34 @@ export function ChallengeSolver({
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">
-                                        0
+                                        {allChallenges.filter(c => c.isAnswered && !markedForReview.has(c.id)).length}
                                     </div>
                                     <span className="text-zinc-600">Answered</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">
-                                        {allChallenges.length}
+                                        {allChallenges.filter(c => !c.isAnswered && visited.has(c.id) && !markedForReview.has(c.id)).length}
                                     </div>
                                     <span className="text-zinc-600">Not Answered</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">
+                                        {allChallenges.filter(c => !visited.has(c.id)).length}
+                                    </div>
+                                    <span className="text-zinc-600">Not Visited</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
                                         {markedForReview.size}
                                     </div>
                                     <span className="text-zinc-600">Marked for Review</span>
+                                </div>
+                                <div className="flex items-center gap-2 col-span-2">
+                                    <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                        {allChallenges.filter(c => c.isAnswered && markedForReview.has(c.id)).length}
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
+                                    </div>
+                                    <span className="text-zinc-600">Answered & Marked for Review</span>
                                 </div>
                             </div>
                         </div>
@@ -793,7 +924,7 @@ export function ChallengeSolver({
                             <div className="grid grid-cols-4 gap-3">
                                 {allChallenges.map((ch, idx) => {
                                     const isCurrent = ch.id === id;
-                                    const isAnswered = false; // Always fresh for new attempt
+                                    const isAnswered = ch.isAnswered;
                                     const isMarked = markedForReview.has(ch.id);
 
                                     let bgClass = "bg-[#e5e7eb]";
@@ -812,7 +943,7 @@ export function ChallengeSolver({
                                       bgClass = "bg-[#44a024]";
                                       textClass = "text-white";
                                       shapeClass = "rounded-tl-xl rounded-br-xl";
-                                    } else if (isCurrent) {
+                                    } else if (visited.has(ch.id)) {
                                       bgClass = "bg-[#ee4b2b]";
                                       textClass = "text-white";
                                       shapeClass = "rounded-tr-xl rounded-bl-xl";
@@ -834,6 +965,16 @@ export function ChallengeSolver({
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        {/* Mobile Submit */}
+                        <div className="p-4 bg-zinc-50 border-t border-zinc-200 mt-auto shrink-0">
+                            <button 
+                                onClick={() => handleSubmitExam(false)}
+                                className="w-full bg-[#5bc0de] text-white font-bold py-3 rounded shadow-sm text-sm"
+                            >
+                                Final Submit
+                            </button>
                         </div>
                     </div>
                 </div>
