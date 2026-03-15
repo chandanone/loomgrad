@@ -5,10 +5,12 @@ import { Timer } from "lucide-react";
 
 export function QuizTimer({
     categorySlug,
-    initialTimerLevel
+    initialTimerLevel,
+    onTimeUp
 }: {
     categorySlug: string;
     initialTimerLevel?: string;
+    onTimeUp?: () => void;
 }) {
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -36,6 +38,7 @@ export function QuizTimer({
             return () => clearInterval(timer);
         } else if (timeLeft === 0) {
             setIsTimerRunning(false);
+            if (onTimeUp) onTimeUp();
         }
     }, [isTimerRunning, timeLeft]);
 

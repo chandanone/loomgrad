@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
     Play, RotateCcw, Loader2, Terminal, XCircle,
     ChevronDown, ChevronUp, CheckCircle2, Lightbulb, BookOpen, Star, CheckSquare, Circle,
-    ChevronLeft, ChevronRight, Timer
+    ChevronLeft, ChevronRight, Timer, User, Info, HelpCircle, Menu, MoreVertical
 } from "lucide-react";
+import Link from "next/link";
 import { submitChallengeResult } from "@/actions/challenges";
 import { QuizTimer } from "./QuizTimer";
 
@@ -42,31 +44,50 @@ interface ChallengeSolverProps {
     assessmentMode?: string;
     initialTimerLevel?: string;
     categorySlug: string;
+    allChallenges?: { id: string; slug: string; title: string; isAnswered: boolean }[];
+    user?: { name: string; image: string | null };
+    initialSubmission?: { submittedCode: string; status: string; passedTests: number; totalTests: number } | null;
+    isReattempt?: boolean;
 }
 
 export function ChallengeSolver({
-    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars, prevChallengeUrl, nextChallengeUrl, assessmentMode = "PRACTICE", initialTimerLevel, categorySlug
+    id, title, description, questionType, starterCode, hint, solution, testCases, options = [], correctAnswer, language, difficultyStars, prevChallengeUrl, nextChallengeUrl, assessmentMode = "PRACTICE", initialTimerLevel, categorySlug, allChallenges = [], user = { name: "Guest", image: null }, initialSubmission, isReattempt = false
 }: ChallengeSolverProps) {
-    // Shared State
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+
+    // Shared State: ALWAYS initialize to fresh state for new attempt
     const [showHint, setShowHint] = useState(false);
     const [showSolution, setShowSolution] = useState(false);
     const [allPassed, setAllPassed] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [passedTests, setPassedTests] = useState(0);
+    const [totalTests, setTotalTests] = useState(0);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [currentLanguage, setCurrentLanguage] = useState<"English" | "Hindi">("English");
 
-    // Coding State
+    // Coding State: Reset to starter code
     const [code, setCode] = useState(starterCode);
     const [output, setOutput] = useState<{ type: "log" | "error" | "test"; content: any }[]>([]);
     const [showOutput, setShowOutput] = useState(false);
     const outputRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    // MCQ State
+    // MCQ State: Always start empty
     const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
+    const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
 
-    // Fill Blank State
+    useEffect(() => {
+        const saved = localStorage.getItem(`review_${categorySlug}`);
+        if (saved) setMarkedForReview(new Set(JSON.parse(saved)));
+    }, [categorySlug]);
+
+    useEffect(() => {
+        localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
+    }, [markedForReview, categorySlug]);
+
+    // Fill Blank State: Always start empty
     const [fillAnswer, setFillAnswer] = useState("");
-
-
 
     useEffect(() => {
         if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
@@ -82,13 +103,15 @@ export function ChallengeSolver({
                 }]);
                 if (type === "test") {
                     const passed = content.every((r: any) => r.passed);
-                    const passedCount = content.filter((r: any) => r.passed).length;
-                    const totalCount = content.length;
+                    const pCount = content.filter((r: any) => r.passed).length;
+                    const tCount = content.length;
                     setAllPassed(passed);
+                    setPassedTests(pCount);
+                    setTotalTests(tCount);
                     setIsSubmitted(true);
 
                     // Save result to server
-                    submitChallengeResult(id, passed ? "PASSED" : "FAILED", code, passedCount, totalCount);
+                    submitChallengeResult(id, passed ? "PASSED" : "FAILED", code, pCount, tCount);
 
                     if (assessmentMode === "EXAM") {
                         // In exam mode, we might just hide the instant feedback banner
@@ -158,10 +181,13 @@ export function ChallengeSolver({
     };
 
     // ─── NON-CODING: Validate Answer ──────────────────────────────────────
-    const handleSubmitQuiz = () => {
+    const handleSubmitQuiz = async (shouldNavigate: boolean | React.MouseEvent = true) => {
         setIsSubmitted(true);
+        const navigate = typeof shouldNavigate === "boolean" ? shouldNavigate : true;
         let passed = false;
         let submittedCode = "";
+        let pCount = passedTests;
+        let tCount = totalTests;
 
         if (questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI") {
             const correctIds = new Set(options.filter(o => o.isCorrect).map(o => o.id));
@@ -169,17 +195,47 @@ export function ChallengeSolver({
                 correctIds.size === selectedOptions.size &&
                 [...correctIds].every(id => selectedOptions.has(id));
             submittedCode = Array.from(selectedOptions).join(",");
+            pCount = passed ? 1 : 0;
+            tCount = 1;
         } else if (questionType === "FILL_BLANK") {
             const normalizedInput = fillAnswer.trim().toLowerCase();
             const normalizedExpected = (correctAnswer || "").trim().toLowerCase();
             passed = normalizedInput === normalizedExpected;
             submittedCode = fillAnswer;
+            pCount = passed ? 1 : 0;
+            tCount = 1;
+        } else if (questionType === "CODING") {
+            passed = allPassed;
+            submittedCode = code;
+            // Use current passedTests/totalTests from state
         }
 
         setAllPassed(passed);
+        setPassedTests(pCount);
+        setTotalTests(tCount);
 
         // Save result to server
-        submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, passed ? 1 : 0, 1);
+        await submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, pCount, tCount);
+
+        // Auto-navigate to next if exists and allowed
+        if (navigate && nextChallengeUrl) {
+            startTransition(() => {
+                router.push(nextChallengeUrl);
+            });
+        }
+    };
+
+    const handleSubmitExam = async (isAuto = false) => {
+        // If it's a quiz, submit the current question first but DON'T navigate
+        if (questionType !== "CODING") {
+            await handleSubmitQuiz(false);
+        }
+        
+        // Show a confirmation if not auto-submitting
+        if (isAuto || confirm("Are you sure you want to submit the exam?")) {
+             // In a real app, we'd trigger a "Finish Attempt" action here
+             router.push(`/challenges/${categorySlug}/result`);
+        }
     };
 
     const handleReset = () => {
@@ -209,6 +265,18 @@ export function ChallengeSolver({
         setSelectedOptions(newSet);
     };
 
+    const toggleMarkForReview = () => {
+        const newSet = new Set(markedForReview);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setMarkedForReview(newSet);
+    };
+
+    const handleClearResponse = () => {
+        setSelectedOptions(new Set());
+        setFillAnswer("");
+    };
+
     // Derived State
     const testResults = output.find(o => o.type === "test");
     const passedCount = testResults ? (testResults.content as any[]).filter((r: any) => r.passed).length : 0;
@@ -223,322 +291,552 @@ export function ChallengeSolver({
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-full min-h-0 gap-0">
+        <div className="flex flex-col h-full bg-[#f5f5f5] overflow-hidden">
             {questionType === "CODING" && (
                 <iframe ref={iframeRef} className="hidden" sandbox="allow-scripts" title="challenge-sandbox" />
             )}
 
-            {/* left Panel: Problem Description */}
-            <div className="w-full lg:w-[420px] shrink-0 flex flex-col border-r border-zinc-200 overflow-y-auto bg-white">
-                <div className="p-6 border-b border-zinc-100">
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-1">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-3.5 h-3.5 ${i < difficultyStars ? "fill-amber-400 text-amber-400" : "text-zinc-200"}`} />
-                            ))}
-                        </div>
-                        <QuizTimer
-                            categorySlug={categorySlug}
-                            initialTimerLevel={initialTimerLevel}
-                        />
+            {/* Desktop Top Bar (Exam Info) */}
+            <div className="hidden md:flex bg-[#2a2a2a] text-white px-4 py-2 items-center justify-between text-sm shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-zinc-400">Language:</span>
+                        <select 
+                            value={currentLanguage}
+                            onChange={(e) => setCurrentLanguage(e.target.value as any)}
+                            className="bg-zinc-800 border-none text-xs rounded px-2 py-0.5 outline-none"
+                        >
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                        </select>
                     </div>
-                    <h1 className="text-2xl font-black tracking-tight font-mono mb-4 text-zinc-900">{title}</h1>
-                    <p className="text-zinc-600 text-sm leading-relaxed whitespace-pre-wrap">{formattedDescription()}</p>
                 </div>
+                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition-colors font-bold text-xs">
+                    <Info className="w-3.5 h-3.5" /> Instructions
+                </button>
+            </div>
 
-                {/* Test Cases preview (Coding only) */}
-                {questionType === "CODING" && (
-                    <div className="p-6 border-b border-zinc-100">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Test Cases</h3>
-                        <div className="space-y-2">
-                            {testCases.slice(0, 4).map((tc, i) => (
-                                <div key={i} className="flex items-center gap-3 font-mono text-xs">
-                                    <span className="text-zinc-400 shrink-0">→</span>
-                                    <span className="text-zinc-600 truncate">{title}({tc.input})</span>
-                                    <span className="text-zinc-400">→</span>
-                                    <span className="text-blue-600 font-bold shrink-0">{tc.expectedOutput}</span>
-                                </div>
-                            ))}
-                            {testCases.length > 4 && (
-                                <p className="text-xs text-zinc-400 italic">+ {testCases.length - 4} more test cases</p>
-                            )}
-                        </div>
-                    </div>
-                )}
+            {/* Mobile Top Bar */}
+            <div className="md:hidden bg-[#1a2d4c] text-white px-4 py-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3 text-sm font-medium">
+                    <span className="flex items-center gap-1">General Awareness <ChevronDown className="w-3 h-3" /></span>
+                    <select 
+                        value={currentLanguage}
+                        onChange={(e) => setCurrentLanguage(e.target.value as any)}
+                        className="bg-white/10 text-white text-[10px] rounded px-1.5 py-0.5 outline-none border border-white/20"
+                    >
+                        <option className="text-black" value="English">EN</option>
+                        <option className="text-black" value="Hindi">HI</option>
+                    </select>
+                </div>
+                <button onClick={() => setShowMobileMenu(!showMobileMenu)} className="p-1">
+                    <Menu className="w-6 h-6" />
+                </button>
+            </div>
 
-                {/* Result Banner */}
-                {isSubmitted && assessmentMode === "PRACTICE" && (
-                    <div className={`mx-6 mt-4 p-4 rounded-xl border ${allPassed
-                        ? "bg-green-50 border-green-200 text-green-700"
-                        : "bg-red-50 border-red-200 text-red-700"
-                        }`}>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 font-bold text-sm">
-                                {allPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                {allPassed
-                                    ? "Correct! 🎉"
-                                    : (questionType === "CODING" ? `${passedCount} / ${totalCount} tests passed` : "Incorrect. Try again!")}
-                            </div>
-                            {allPassed && nextChallengeUrl && (
-                                <a
-                                    href={nextChallengeUrl}
-                                    className="flex items-center gap-1.5 bg-zinc-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-all active:scale-95 shadow-sm"
-                                >
-                                    Next <Play className="w-3 h-3 fill-current" />
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Hint */}
-                {hint && (
-                    <div className="p-6 border-t border-zinc-100 mt-auto">
-                        <button onClick={() => setShowHint(!showHint)} className="flex items-center gap-2 text-sm font-bold text-amber-600 hover:text-amber-700 transition-colors mb-3">
-                            <Lightbulb className="w-4 h-4" /> {showHint ? "Hide Hint" : "Show Hint"}
-                        </button>
-                        {showHint && (
-                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 leading-relaxed">
-                                {hint}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Solution */}
-                {solution && isSubmitted && allPassed && (
-                    <div className="p-6 border-t border-zinc-100">
-                        <button onClick={() => setShowSolution(!showSolution)} className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors mb-3">
-                            <BookOpen className="w-4 h-4" /> {showSolution ? "Hide Solution" : "View Explanation"}
-                        </button>
-                        {showSolution && (
-                            <pre className="p-4 bg-zinc-50 border border-zinc-200 text-zinc-700 whitespace-pre-wrap rounded-xl text-sm overflow-x-auto">
-                                {solution}
-                            </pre>
-                        )}
-                    </div>
-                )}
-
-                {/* Question Navigation */}
-                <div className="mt-auto p-4 border-t border-zinc-100 bg-zinc-50/50 flex items-center justify-between gap-3">
-                    {prevChallengeUrl ? (
-                        <a
-                            href={prevChallengeUrl}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-zinc-500 hover:text-zinc-900 hover:bg-white transition-all border border-zinc-200"
-                        >
-                            <ChevronLeft className="w-4 h-4" /> Previous
-                        </a>
-                    ) : <div />}
-
-                    {nextChallengeUrl && (
-                        <a
-                            href={nextChallengeUrl}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all border border-blue-100"
-                        >
-                            {allPassed ? "Next Question" : "Skip Question"} <ChevronRight className="w-4 h-4" />
-                        </a>
-                    )}
+            {/* Mobile Timer Bar */}
+            <div className="md:hidden bg-[#4b77be] text-white px-4 py-1.5 flex items-center justify-end font-bold text-xs shrink-0">
+                <div className="flex items-center gap-2 bg-[#1a2d4c] px-3 py-1 rounded">
+                    <span className="text-[10px] text-zinc-300">Time Left :</span>
+                    <QuizTimer 
+                        categorySlug={categorySlug} 
+                        initialTimerLevel={initialTimerLevel} 
+                        onTimeUp={() => {
+                            alert("Time is up! Your exam will be submitted automatically.");
+                            handleSubmitExam(true);
+                        }}
+                    />
                 </div>
             </div>
 
-            {/* Right panel: Editor OR Quiz Interface */}
-            <div className="flex-1 flex flex-col bg-zinc-50 min-h-0 relative">
+            {/* Mobile Question Palette (Horizontal Scroll) */}
+            <div className="md:hidden bg-[#f0f0f0] border-b border-zinc-300 py-2 px-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide shrink-0">
+                {allChallenges.map((ch, idx) => {
+                    const isCurrent = ch.id === id;
+                    const isAnswered = ch.isAnswered;
+                    const isMarked = markedForReview.has(ch.id);
 
-                {/* Main Right Content */}
-                {questionType === "CODING" ? (
-                    <div className="flex flex-col h-full bg-[#1e1e1e]">
-                        {/* Toolbar */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
-                            <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-mono font-bold text-zinc-500 ml-2 uppercase tracking-widest">{language}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={handleReset} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 transition-colors">
-                                    <RotateCcw className="w-4 h-4" />
-                                </button>
-                                <button onClick={handleRunCode} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all active:scale-95">
-                                    {assessmentMode === "EXAM" ? (allPassed ? "SAVED" : "RUN & SAVE") : <><Play className="w-3.5 h-3.5 fill-current" /> RUN CODE</>}
-                                </button>
-                            </div>
+                    let bgClass = "bg-white";
+                    let textClass = "text-zinc-600";
+                    let shapeClass = "rounded";
+
+                    if (isCurrent) {
+                        bgClass = "bg-[#ee4b2b]";
+                        textClass = "text-white";
+                        shapeClass = "rounded relative after:content-[''] after:absolute after:-bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:border-l-[6px] after:border-l-transparent after:border-r-[6px] after:border-r-transparent after:border-t-[6px] after:border-t-[#ee4b2b]";
+                    } else if (isAnswered && isMarked) {
+                        bgClass = "bg-[#6a5acd]";
+                        textClass = "text-white";
+                        shapeClass = "rounded-full relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-2 after:h-2 after:bg-green-500 after:border after:border-white after:rounded-sm";
+                    } else if (isMarked) {
+                        bgClass = "bg-[#6a5acd]";
+                        textClass = "text-white";
+                        shapeClass = "rounded-full";
+                    } else if (isAnswered) {
+                        bgClass = "bg-[#44a024]";
+                        textClass = "text-white";
+                        shapeClass = "rounded-tl-lg rounded-br-lg";
+                    }
+
+                    return (
+                        <button
+                            key={ch.id}
+                            onClick={() => {
+                                startTransition(() => {
+                                    router.push(`/challenges/${categorySlug}/${ch.slug}`);
+                                });
+                            }}
+                            className={`min-w-[44px] h-10 flex items-center justify-center text-sm font-bold border border-zinc-300 mx-1 transition-all ${bgClass} ${textClass} ${shapeClass} ${isCurrent ? "z-10 shadow-md" : ""}`}
+                        >
+                            {idx + 1}
+                        </button>
+                    );
+                })}
+                <div className="min-w-[44px] h-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg mx-1 ml-auto">
+                    <Info className="w-5 h-5" />
+                </div>
+            </div>
+
+            {/* Main Layout Area */}
+            <div className="flex flex-1 min-h-0">
+                {/* Left Section: Question Content */}
+                <div className="flex-1 flex flex-col bg-white overflow-hidden">
+                    {/* Section Header (Desktop) */}
+                    <div className="hidden md:flex bg-[#f0f0f0] border-b border-zinc-300 px-4 py-2 items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                            <button className="bg-[#007ba1] text-white px-4 py-1.5 text-xs font-bold rounded-t-md -mb-2 border-b-2 border-white">
+                                {assessmentMode === "EXAM" ? "General Awareness" : title}
+                            </button>
                         </div>
-
-                        {/* Editor */}
-                        <div className={`flex-1 min-h-0 relative transition-all duration-300 ${showOutput ? "h-[60%]" : "h-full"}`}>
-                            <div className={`absolute inset-0 ${showOutput ? "bottom-0" : ""}`}>
-                                <Editor
-                                    height="100%"
-                                    defaultLanguage={language.toLowerCase() === "javascript" ? "javascript" : "typescript"}
-                                    theme="vs-dark"
-                                    value={code}
-                                    onChange={(v) => setCode(v || "")}
-                                    options={{ fontSize: 14, minimap: { enabled: false }, padding: { top: 16 } }}
+                        <div className="flex items-center gap-4 text-sm font-bold text-zinc-700">
+                            <div className="flex items-center gap-2">
+                                <Timer className="w-4 h-4 text-zinc-400" />
+                                <span>Time Left: </span>
+                                <QuizTimer 
+                                    categorySlug={categorySlug} 
+                                    initialTimerLevel={initialTimerLevel} 
+                                    onTimeUp={() => {
+                                        alert("Time is up! Your exam will be submitted automatically.");
+                                        handleSubmitExam(true);
+                                    }}
                                 />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Output Panel */}
-                        {showOutput && (
-                            <div className="h-[40%] min-h-[160px] bg-zinc-950 border-t border-zinc-800 flex flex-col">
-                                <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/50 border-b border-zinc-800 shrink-0">
-                                    <div className="flex items-center gap-2 text-zinc-400">
-                                        <Terminal className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Output</span>
-                                        {testResults && assessmentMode === "PRACTICE" && (
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${allPassed ? "bg-green-500/10 text-green-400" : "bg-amber-500/10 text-amber-400"}`}>
-                                                {passedCount}/{totalCount}
-                                            </span>
-                                        )}
-                                        {testResults && assessmentMode === "EXAM" && (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
-                                                Code Executed & Saved
-                                            </span>
-                                        )}
+                    {/* Question Header (Responsive) */}
+                    <div className="bg-[#4b77be] md:bg-[#4b77be] text-white md:text-white px-4 py-2 text-xs font-bold flex justify-between items-center shrink-0 border-b md:border-none border-zinc-300">
+                        <span className="hidden md:inline">Question Type: Multiple Choice Question</span>
+                        <span className="md:hidden text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-300">Question No. {allChallenges.findIndex(c => c.id === id) + 1}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="hidden md:inline">View in:</span>
+                            <select 
+                                value={currentLanguage}
+                                onChange={(e) => setCurrentLanguage(e.target.value as any)}
+                                className="bg-white text-zinc-900 border border-zinc-300 rounded text-[10px] px-1 py-0.5 outline-none font-normal"
+                            >
+                                <option value="English">English</option>
+                                <option value="Hindi">Hindi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Question Text & Options */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex items-start gap-4 mb-8">
+                                <span className="hidden md:block text-lg font-bold text-zinc-800 pt-0.5 whitespace-nowrap">
+                                    Question No. {allChallenges.findIndex(c => c.id === id) + 1}
+                                </span>
+                                <div className="flex-1">
+                                    <div className="text-base md:text-lg text-zinc-900 mb-8 whitespace-pre-wrap leading-relaxed">
+                                        {formattedDescription()}
                                     </div>
-                                    <button onClick={() => setShowOutput(false)} className="p-1 hover:bg-zinc-800 rounded text-zinc-500">
-                                        <ChevronDown className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <div ref={outputRef} className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-sm">
-                                    {/* (Render logs and test Results table here... same as before) */}
-                                    {output.length === 0 ? (
-                                        <div className="text-zinc-600 italic animate-pulse">Running code...</div>
-                                    ) : (
-                                        <>
-                                            {output.filter(o => o.type !== "test").map((log, i) => (
-                                                <div key={i} className="flex gap-3">
-                                                    <span className="text-zinc-600 text-[10px] w-4 shrink-0">{i + 1}</span>
-                                                    <div className={log.type === "error" ? "text-red-400" : "text-zinc-300 whitespace-pre-wrap"}>
-                                                        {log.type === "error" && <XCircle className="w-4 h-4 inline mr-2 -mt-0.5" />}
-                                                        {log.content}
+
+                                    {/* MCQ Options */}
+                                    {questionType.startsWith("MCQ") && (
+                                        <div className="space-y-4">
+                                            {options.map((opt, i) => {
+                                                const isSelected = selectedOptions.has(opt.id);
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => toggleOption(opt.id)}
+                                                        disabled={isSubmitted}
+                                                        className="w-full flex items-center gap-3 p-2 group text-left hover:bg-zinc-50 transition-colors"
+                                                    >
+                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "border-blue-600" : "border-zinc-400"}`}>
+                                                            {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                                                        </div>
+                                                        <span className="text-zinc-800 text-sm font-medium">{opt.text}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Coding Editor (if needed) */}
+                                    {questionType === "CODING" && (
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center justify-between bg-zinc-900 px-4 py-2 rounded-t-lg">
+                                                <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">{language}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={handleReset} className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400">
+                                                        <RotateCcw className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={handleRunCode} className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded transition-all">
+                                                        <Play className="w-3 h-3 fill-current" /> RUN
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="h-[400px] border border-zinc-800 rounded-b-lg overflow-hidden">
+                                                 <Editor
+                                                    height="100%"
+                                                    defaultLanguage={language.toLowerCase() === "javascript" ? "javascript" : "typescript"}
+                                                    theme="vs-dark"
+                                                    value={code}
+                                                    onChange={(v) => setCode(v || "")}
+                                                    options={{ fontSize: 13, minimap: { enabled: false }, padding: { top: 12 }, lineNumbersMinChars: 3 }}
+                                                />
+                                            </div>
+                                            
+                                            {/* Sandbox Output Preview */}
+                                            {showOutput && (
+                                                <div className="mt-4 bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
+                                                    <div className="bg-zinc-800 px-4 py-2 flex items-center justify-between">
+                                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Output</span>
+                                                        <button onClick={() => setShowOutput(false)} className="text-zinc-500 hover:text-white">
+                                                            <ChevronDown className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div ref={outputRef} className="p-4 font-mono text-xs text-zinc-300 max-h-48 overflow-y-auto bg-zinc-950 space-y-1">
+                                                        {output.length === 0 ? "Running..." : output.map((log, i) => {
+                                                            if (log.type === "test") {
+                                                                const results = log.content as any[];
+                                                                return (
+                                                                    <div key={i} className="space-y-1 py-1 border-b border-zinc-800 last:border-0">
+                                                                        {results.map((r, ri) => (
+                                                                            <div key={ri} className={r.passed ? "text-green-400" : "text-red-400"}>
+                                                                                {r.passed ? "✓" : "✗"} Test {ri + 1}: {r.passed ? "Passed" : `Failed (Expected ${r.expected}, got ${r.actual})`}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return <div key={i} className={log.type === "error" ? "text-red-400" : ""}>{String(log.content)}</div>;
+                                                        })}
                                                     </div>
                                                 </div>
-                                            ))}
-                                            {testResults && assessmentMode === "PRACTICE" && (
-                                                <div className="border border-zinc-800 rounded-xl overflow-hidden mt-4">
-                                                    <table className="w-full text-left bg-zinc-900/50">
-                                                        <thead>
-                                                            <tr className="text-[10px] uppercase text-zinc-500 border-b border-zinc-800">
-                                                                <th className="px-4 py-2">Input</th>
-                                                                <th className="px-4 py-2">Expected</th>
-                                                                <th className="px-4 py-2">Actual</th>
-                                                                <th className="px-4 py-2 text-center">✓</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="text-[11px]">
-                                                            {(testResults.content as any[]).map((res: any, i: number) => (
-                                                                <tr key={i} className="border-b border-zinc-900/50 hover:bg-zinc-900/30">
-                                                                    <td className="px-4 py-1.5 text-zinc-400">({res.input})</td>
-                                                                    <td className="px-4 py-1.5 text-blue-400">{res.expected}</td>
-                                                                    <td className={`px-4 py-1.5 ${res.passed ? "text-green-400" : "text-red-400"}`}>{res.actual}</td>
-                                                                    <td className="px-4 py-1.5 text-center">
-                                                                        {res.passed ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mx-auto" /> : <XCircle className="w-3.5 h-3.5 text-red-500 mx-auto" />}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
                                             )}
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        {!showOutput && output.length > 0 && (
-                            <button onClick={() => setShowOutput(true)} className="absolute bottom-4 right-4 flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 z-20">
-                                <Terminal className="w-3.5 h-3.5" /> {allPassed ? "✅ Passed" : "Results"} <ChevronUp className="w-3.5 h-3.5" />
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    /* ── QUIZ INTERFACE (MCQ / Fill Blank) ── */
-                    <div className="flex-1 p-8 lg:p-12 overflow-y-auto">
-                        <div className="max-w-2xl mx-auto space-y-8">
-
-                            {/* MCQ */}
-                            {questionType.startsWith("MCQ") && (
-                                <div className="space-y-3">
-                                    {options.map((opt, i) => {
-                                        const isSelected = selectedOptions.has(opt.id);
-                                        let stateClass = "border-zinc-200 hover:bg-white bg-zinc-50";
-                                        let icon = questionType === "MCQ_SINGLE" ? <Circle className="w-5 h-5 text-zinc-300" /> : <CheckSquare className="w-5 h-5 text-zinc-300" />;
-
-                                        if (isSelected) {
-                                            stateClass = "border-blue-500 bg-blue-50 ring-2 ring-blue-500/20";
-                                            icon = questionType === "MCQ_SINGLE" ? <CheckCircle2 className="w-5 h-5 text-blue-600 fill-blue-100" /> : <CheckSquare className="w-5 h-5 text-blue-600 fill-blue-100" />;
-                                        }
-
-                                        // Show correct/incorrect after submit
-                                        if (isSubmitted) {
-                                            if (opt.isCorrect) {
-                                                stateClass = "border-green-500 bg-green-50";
-                                                icon = <CheckCircle2 className="w-5 h-5 text-green-600" />;
-                                            } else if (isSelected && !opt.isCorrect) {
-                                                stateClass = "border-red-500 bg-red-50";
-                                                icon = <XCircle className="w-5 h-5 text-red-500" />;
-                                            } else {
-                                                stateClass = "border-zinc-200 bg-transparent opacity-50";
-                                            }
-                                        }
-
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => toggleOption(opt.id)}
-                                                disabled={isSubmitted}
-                                                className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left group ${stateClass}`}
-                                            >
-                                                <div className="shrink-0">{icon}</div>
-                                                <span className="font-bold text-zinc-800 flex-1">{opt.text}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* FILL BLANK */}
-                            {questionType === "FILL_BLANK" && (
-                                <div className="space-y-4">
-                                    <label className="text-sm font-bold text-zinc-500 uppercase tracking-widest block text-center">Type your answer</label>
-                                    <input
-                                        type="text"
-                                        value={fillAnswer}
-                                        onChange={(e) => setFillAnswer(e.target.value)}
-                                        disabled={isSubmitted}
-                                        placeholder="Your answer..."
-                                        className={`w-full max-w-sm mx-auto block text-center border-b-2 bg-transparent text-2xl font-bold py-3 focus:outline-none transition-colors ${isSubmitted
-                                            ? (allPassed ? "border-green-500 text-green-700" : "border-red-500 text-red-600")
-                                            : "border-zinc-300 focus:border-blue-500 text-zinc-900"
-                                            }`}
-                                    />
-                                    {isSubmitted && !allPassed && correctAnswer && (
-                                        <div className="text-center text-sm text-green-600 font-bold mt-4 bg-green-50 py-2 rounded-xl">
-                                            Correct answer: {correctAnswer}
                                         </div>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="pt-8 flex justify-center gap-4">
-                                {isSubmitted && assessmentMode === "PRACTICE" ? (
-                                    <button onClick={handleReset} className="flex items-center gap-2 bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold px-6 py-3 rounded-xl transition-all">
-                                        <RotateCcw className="w-4 h-4" /> Try Again
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleSubmitQuiz}
-                                        disabled={isSubmitted && assessmentMode === "EXAM" || (fillAnswer.length === 0 && selectedOptions.size === 0)}
-                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-sm"
-                                    >
-                                        {assessmentMode === "EXAM" ? (isSubmitted ? "SUBMITTED" : "SUBMIT & SAVE") : "Submit Answer"}
-                                    </button>
-                                )}
                             </div>
-
                         </div>
                     </div>
-                )}
+
+                    {/* Mobile Footer Action Bar */}
+                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-3 flex flex-col gap-2 shrink-0">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleClearResponse}
+                                className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
+                            >
+                                Clear Response
+                            </button>
+                            <button
+                                onClick={toggleMarkForReview}
+                                className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
+                            >
+                                Mark for Review & Next
+                            </button>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleSubmitExam(false)}
+                                className="flex-1 py-3 bg-[#87b1f5] hover:bg-[#6c9ef2] text-white text-sm font-bold rounded shadow-inner"
+                            >
+                                Submit
+                            </button>
+                            <button
+                                onClick={handleSubmitQuiz}
+                                className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner"
+                            >
+                                Save & Next
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Desktop Bottom Action Bar */}
+                    <div className="hidden md:flex border-t border-zinc-200 p-4 bg-white items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    toggleMarkForReview();
+                                    if (nextChallengeUrl) {
+                                        startTransition(() => {
+                                            router.push(nextChallengeUrl);
+                                        });
+                                    }
+                                }}
+                                className="px-6 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-sm font-medium hover:bg-zinc-50 transition-colors shadow-sm rounded disabled:opacity-50"
+                                disabled={isPending}
+                            >
+                                Mark for Review & Next
+                            </button>
+                            <button
+                                onClick={handleClearResponse}
+                                className="px-6 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-sm font-medium hover:bg-zinc-50 transition-colors shadow-sm rounded"
+                            >
+                                Clear Response
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {prevChallengeUrl && (
+                                <Link href={prevChallengeUrl} className="px-6 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-sm font-medium hover:bg-zinc-50 transition-colors shadow-sm rounded">
+                                    Previous
+                                </Link>
+                            )}
+                            <button
+                                onClick={handleSubmitQuiz}
+                                className="px-8 py-2.5 bg-[#007ba1] hover:bg-[#005a76] text-white text-sm font-bold transition-colors shadow-md rounded"
+                            >
+                                Save & Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop Right Section: Palette & Profile */}
+                <div className="hidden md:flex w-[300px] lg:w-[320px] bg-[#f9f9f9] border-l border-zinc-300 flex-col shrink-0">
+                    {/* User Profile */}
+                    <div className="p-4 flex items-center gap-4 bg-white border-b border-zinc-200">
+                        {user.image ? (
+                            <img src={user.image} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
+                        ) : (
+                            <div className="w-16 h-20 bg-zinc-100 rounded flex items-center justify-center border border-zinc-200 shadow-sm">
+                                <User className="w-8 h-8 text-zinc-300" />
+                            </div>
+                        )}
+                        <div>
+                            <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Candidate</span>
+                            <h3 className="font-bold text-zinc-900 leading-tight">{user.name}</h3>
+                        </div>
+                    </div>
+
+                    {/* Status Legend */}
+                    <div className="p-4 border-b border-zinc-200">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">
+                                    0
+                                </div>
+                                <span className="text-zinc-600">Answered</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">
+                                    {allChallenges.length}
+                                </div>
+                                <span className="text-zinc-600">Not Answered</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">0</div>
+                                <span className="text-zinc-600">Not Visited</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                    {markedForReview.size}
+                                </div>
+                                <span className="text-zinc-600">Marked for Review</span>
+                            </div>
+                            <div className="flex items-center gap-2 col-span-2">
+                                <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                    {allChallenges.filter(c => c.isAnswered && markedForReview.has(c.id)).length}
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
+                                </div>
+                                <span className="text-zinc-600">Answered & Marked for Review</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Question Palette Section */}
+                    <div className="bg-[#007ba1] text-white px-4 py-1.5 text-xs font-bold shrink-0">
+                        General Awareness
+                    </div>
+                    <div className="bg-[#f2f8fc] border-y border-zinc-200 px-4 py-2 text-xs font-bold text-zinc-700 shrink-0">
+                        Choose a Question
+                    </div>
+
+                    {/* Palette Grid */}
+                    <div className="flex-1 overflow-y-auto p-4 bg-white">
+                        <div className="grid grid-cols-4 gap-3">
+                            {allChallenges.map((ch, idx) => {
+                                const isCurrent = ch.id === id;
+                                const isAnswered = false; // Always fresh for new attempt
+                                const isMarked = markedForReview.has(ch.id);
+
+                                // Determine color coding (Simplified for now)
+                                let bgClass = "bg-[#e5e7eb]";
+                                let textClass = "text-zinc-600";
+                                let shapeClass = "";
+
+                                if (isAnswered && isMarked) {
+                                  bgClass = "bg-[#6a5acd]";
+                                  textClass = "text-white";
+                                  shapeClass = "rounded-full relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-2 after:h-2 after:bg-green-500 after:border after:border-white after:rounded-sm";
+                                } else if (isMarked) {
+                                  bgClass = "bg-[#6a5acd]";
+                                  textClass = "text-white";
+                                  shapeClass = "rounded-full";
+                                } else if (isAnswered) {
+                                  bgClass = "bg-[#44a024]";
+                                  textClass = "text-white";
+                                  shapeClass = "rounded-tl-xl rounded-br-xl";
+                                } else if (isCurrent) {
+                                  bgClass = "bg-[#ee4b2b]";
+                                  textClass = "text-white";
+                                  shapeClass = "rounded-tr-xl rounded-bl-xl";
+                                }
+
+                                return (
+                                    <button
+                                        key={ch.id}
+                                        onClick={() => {
+                                            startTransition(() => {
+                                                router.push(`/challenges/${categorySlug}/${ch.slug}`);
+                                            });
+                                        }}
+                                        className={`w-10 h-10 flex items-center justify-center text-xs font-bold transition-all hover:scale-105 ${bgClass} ${textClass} ${shapeClass} ${isCurrent ? "ring-2 ring-offset-2 ring-blue-500" : ""}`}
+                                    >
+                                        {idx + 1}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="p-4 bg-[#f2f8fc] border-t border-zinc-300 shrink-0">
+                        <button 
+                            onClick={() => handleSubmitExam(false)}
+                            className="w-full bg-[#5bc0de] hover:bg-[#31b0d5] text-white font-bold py-2.5 rounded shadow-sm transition-colors text-sm"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {/* Mobile Sidebar/Drawer Backdrop */}
+            {showMobileMenu && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-[100] md:hidden"
+                    onClick={() => setShowMobileMenu(false)}
+                />
+            )}
+
+            {/* Mobile Sidebar/Drawer */}
+            <div className={`fixed top-0 right-0 h-full w-[280px] bg-white z-[101] shadow-2xl transition-transform duration-300 md:hidden ${showMobileMenu ? "translate-x-0" : "translate-x-full"}`}>
+                <div className="flex flex-col h-full">
+                    <div className="p-4 bg-[#1a2d4c] text-white flex items-center justify-between">
+                        <span className="font-bold">Palette</span>
+                        <button onClick={() => setShowMobileMenu(false)} className="p-1 hover:bg-white/10 rounded">
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    </div>
+                    
+                    {/* Reuse Palette Content */}
+                    <div className="flex-1 overflow-y-auto flex flex-col">
+                        {/* User Profile */}
+                        <div className="p-4 flex items-center gap-4 bg-white border-b border-zinc-200">
+                            {user.image ? (
+                                <img src={user.image} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
+                            ) : (
+                                <div className="w-16 h-20 bg-zinc-100 rounded flex items-center justify-center border border-zinc-200 shadow-sm">
+                                    <User className="w-8 h-8 text-zinc-300" />
+                                </div>
+                            )}
+                            <div>
+                                <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Candidate</span>
+                                <h3 className="font-bold text-zinc-900 leading-tight">{user.name}</h3>
+                            </div>
+                        </div>
+
+                        {/* Status Legend */}
+                        <div className="p-4 border-b border-zinc-200">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">
+                                        0
+                                    </div>
+                                    <span className="text-zinc-600">Answered</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">
+                                        {allChallenges.length}
+                                    </div>
+                                    <span className="text-zinc-600">Not Answered</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                        {markedForReview.size}
+                                    </div>
+                                    <span className="text-zinc-600">Marked for Review</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Question Palette Section */}
+                        <div className="bg-[#007ba1] text-white px-4 py-1.5 text-xs font-bold">
+                            General Awareness
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 bg-white">
+                            <div className="grid grid-cols-4 gap-3">
+                                {allChallenges.map((ch, idx) => {
+                                    const isCurrent = ch.id === id;
+                                    const isAnswered = false; // Always fresh for new attempt
+                                    const isMarked = markedForReview.has(ch.id);
+
+                                    let bgClass = "bg-[#e5e7eb]";
+                                    let textClass = "text-zinc-600";
+                                    let shapeClass = "";
+
+                                    if (isAnswered && isMarked) {
+                                      bgClass = "bg-[#6a5acd]";
+                                      textClass = "text-white";
+                                      shapeClass = "rounded-full relative after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-2 after:h-2 after:bg-green-500 after:border after:border-white after:rounded-sm";
+                                    } else if (isMarked) {
+                                      bgClass = "bg-[#6a5acd]";
+                                      textClass = "text-white";
+                                      shapeClass = "rounded-full";
+                                    } else if (isAnswered) {
+                                      bgClass = "bg-[#44a024]";
+                                      textClass = "text-white";
+                                      shapeClass = "rounded-tl-xl rounded-br-xl";
+                                    } else if (isCurrent) {
+                                      bgClass = "bg-[#ee4b2b]";
+                                      textClass = "text-white";
+                                      shapeClass = "rounded-tr-xl rounded-bl-xl";
+                                    }
+
+                                    return (
+                                        <button
+                                            key={ch.id}
+                                            onClick={() => {
+                                                setShowMobileMenu(false);
+                                                startTransition(() => {
+                                                    router.push(`/challenges/${categorySlug}/${ch.slug}`);
+                                                });
+                                            }}
+                                            className={`w-10 h-10 flex items-center justify-center text-xs font-bold transition-all hover:scale-105 ${bgClass} ${textClass} ${shapeClass} ${isCurrent ? "ring-2 ring-offset-2 ring-blue-500" : ""}`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

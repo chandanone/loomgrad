@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Code2, Calculator } from "lucide-react";
+import { Code2, Calculator } from "lucide-react";
 import { ChallengeSolver } from "@/components/challenges/ChallengeSolver";
+import { auth } from "@/lib/auth";
 
 export default async function ChallengeSolvePage({
     params,
@@ -13,6 +14,7 @@ export default async function ChallengeSolvePage({
 }) {
     const { categorySlug, challengeSlug } = await params;
     const { timer } = await searchParams;
+    const session = await auth();
 
     const category = await prisma.challengeCategory.findUnique({
         where: { slug: categorySlug },
@@ -29,37 +31,34 @@ export default async function ChallengeSolvePage({
         },
         include: {
             testCases: { orderBy: { orderIndex: "asc" } },
-            options: { orderBy: { orderIndex: "asc" } }
+            options: { orderBy: { orderIndex: "asc" } },
+            submissions: session?.user?.id ? {
+                where: { userId: session.user.id },
+                orderBy: { createdAt: 'desc' },
+                take: 1
+            } : false
         }
     });
 
     if (!challenge) notFound();
 
-    const nextChallenge = await prisma.challenge.findFirst({
-        where: {
-            categoryId: category.id,
-            isPublished: true,
-            orderIndex: {
-                gt: challenge.orderIndex
-            }
-        },
-        orderBy: {
-            orderIndex: 'asc'
+    const allChallenges = await prisma.challenge.findMany({
+        where: { categoryId: category.id, isPublished: true },
+        orderBy: { orderIndex: 'asc' },
+        select: {
+            id: true,
+            slug: true,
+            title: true,
+            submissions: session?.user?.id ? {
+                where: { userId: session.user.id },
+                select: { status: true }
+            } : false
         }
     });
 
-    const prevChallenge = await prisma.challenge.findFirst({
-        where: {
-            categoryId: category.id,
-            isPublished: true,
-            orderIndex: {
-                lt: challenge.orderIndex
-            }
-        },
-        orderBy: {
-            orderIndex: 'desc'
-        }
-    });
+    const currentIndex = allChallenges.findIndex(c => c.id === challenge.id);
+    const nextChallenge = allChallenges[currentIndex + 1];
+    const prevChallenge = allChallenges[currentIndex - 1];
 
     const nextChallengeUrl = nextChallenge
         ? `/challenges/${categorySlug}/${nextChallenge.slug}`
@@ -105,6 +104,7 @@ export default async function ChallengeSolvePage({
             {/* Solver workspace */}
             <div className="flex-1 min-h-0">
                 <ChallengeSolver
+                    key={challenge.id}
                     id={challenge.id}
                     title={challenge.title}
                     description={challenge.description}
@@ -122,6 +122,23 @@ export default async function ChallengeSolvePage({
                     assessmentMode={assessmentMode}
                     initialTimerLevel={timer}
                     categorySlug={categorySlug}
+                    allChallenges={allChallenges.map(c => ({
+                        id: c.id,
+                        slug: c.slug,
+                        title: c.title,
+                        isAnswered: (c.submissions as any[])?.length > 0
+                    }))}
+                    user={{
+                        name: session?.user?.name || "John Smith",
+                        image: session?.user?.image || null
+                    }}
+                    initialSubmission={(challenge.submissions as any[])?.[0] ? {
+                        submittedCode: (challenge.submissions as any[])[0].code,
+                        status: (challenge.submissions as any[])[0].status,
+                        passedTests: (challenge.submissions as any[])[0].passedTests,
+                        totalTests: (challenge.submissions as any[])[0].totalTests
+                    } : null}
+                    isReattempt={timer !== undefined}
                 />
             </div>
         </div>

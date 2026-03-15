@@ -28,6 +28,17 @@ export default async function CategoryInstructionPage({
 
     if (!category) notFound();
 
+    let hasSubmissions = false;
+    if (session?.user?.id) {
+        const subCount = await prisma.challengeSubmission.count({
+            where: {
+                userId: session.user.id,
+                challenge: { categoryId: category.id }
+            }
+        });
+        hasSubmissions = subCount > 0;
+    }
+
     const firstChallenge = category.challenges[0];
     if (!firstChallenge) {
         return (
@@ -106,6 +117,7 @@ export default async function CategoryInstructionPage({
                     firstChallengeSlug={firstChallenge.slug}
                     assessmentMode={category.assessmentMode}
                     userName={session?.user?.name}
+                    hasSubmissions={hasSubmissions}
                 />
             </div>
         </div>
