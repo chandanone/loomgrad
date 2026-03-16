@@ -84,10 +84,10 @@ export function ChallengeSolver({
 
     useEffect(() => {
         const savedReview = localStorage.getItem(`review_${categorySlug}`);
-        if (savedReview) setMarkedForReview(new Set(JSON.parse(savedReview)));
+        if (savedReview) setMarkedForReview(new Set<string>(JSON.parse(savedReview)));
 
         const savedVisited = localStorage.getItem(`visited_${categorySlug}`);
-        const visitedSet = new Set(savedVisited ? JSON.parse(savedVisited) : []);
+        const visitedSet = new Set<string>(savedVisited ? JSON.parse(savedVisited) : []);
         visitedSet.add(id);
         setVisited(visitedSet);
         localStorage.setItem(`visited_${categorySlug}`, JSON.stringify(Array.from(visitedSet)));
