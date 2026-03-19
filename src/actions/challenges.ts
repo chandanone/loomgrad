@@ -28,6 +28,10 @@ export async function createChallengeCategory(formData: FormData) {
     const difficultyStars = parseInt(formData.get("difficultyStars") as string) || 1;
     const language = (formData.get("language") as string) || "JavaScript";
     const helpText = formData.get("helpText") as string;
+    const fullInstruction = formData.get("fullInstruction") as string;
+    const assessmentMode = (formData.get("assessmentMode") as string) || "PRACTICE";
+    const classLevel = formData.get("classLevel") as string;
+    const subCategory = formData.get("subCategory") as string;
 
     if (!title || !description) throw new Error("Title and description are required.");
 
@@ -45,6 +49,10 @@ export async function createChallengeCategory(formData: FormData) {
             difficultyStars,
             language,
             helpText: helpText || null,
+            fullInstruction: fullInstruction || null,
+            assessmentMode: assessmentMode,
+            classLevel: classLevel || null,
+            subCategory: subCategory || null,
             orderIndex: count,
         }
     });
@@ -62,11 +70,15 @@ export async function updateChallengeCategory(categoryId: string, formData: Form
     const difficultyStars = parseInt(formData.get("difficultyStars") as string) || 1;
     const language = formData.get("language") as string;
     const helpText = formData.get("helpText") as string;
+    const fullInstruction = formData.get("fullInstruction") as string;
+    const assessmentMode = formData.get("assessmentMode") as string;
+    const classLevel = formData.get("classLevel") as string;
+    const subCategory = formData.get("subCategory") as string;
     const isPublished = formData.get("isPublished") === "true";
 
     await prisma.challengeCategory.update({
         where: { id: categoryId },
-        data: { title, description, type: type as any, difficultyStars, language, helpText, isPublished }
+        data: { title, description, type: type as any, difficultyStars, language, helpText, fullInstruction, assessmentMode, classLevel: classLevel || null, subCategory: subCategory || null, isPublished }
     });
 
     revalidatePath("/admin/challenges");
@@ -99,6 +111,7 @@ export async function createChallenge(categoryId: string, formData: FormData) {
     const description = formData.get("description") as string;
     const type = (formData.get("type") as string) || "CODING";
     const questionType = (formData.get("questionType") as string) || "CODING";
+    const language = (formData.get("language") as string) || "JavaScript";
     const difficultyStars = parseInt(formData.get("difficultyStars") as string) || 1;
     const starterCode = formData.get("starterCode") as string;
     const solution = formData.get("solution") as string;
@@ -123,6 +136,7 @@ export async function createChallenge(categoryId: string, formData: FormData) {
             solution: solution || null,
             hint: hint || null,
             correctAnswer: correctAnswer || null,
+            language,
             orderIndex: count,
         }
     });
@@ -179,11 +193,12 @@ export async function updateChallenge(challengeId: string, categoryId: string, f
     const solution = formData.get("solution") as string;
     const hint = formData.get("hint") as string;
     const correctAnswer = formData.get("correctAnswer") as string;
+    const language = (formData.get("language") as string) || "JavaScript";
     const isPublished = formData.get("isPublished") === "true";
 
     await prisma.challenge.update({
         where: { id: challengeId },
-        data: { title, description, type: type as any, questionType: questionType as any, difficultyStars, starterCode, solution, hint, correctAnswer, isPublished }
+        data: { title, description, type: type as any, questionType: questionType as any, difficultyStars, starterCode, solution, hint, correctAnswer, language, isPublished }
     });
 
     // Replace test cases
@@ -255,6 +270,43 @@ export async function submitChallengeResult(
             code: code || "",
             passedTests,
             totalTests,
+        }
+    });
+
+    revalidatePath("/challenges");
+}
+
+export async function clearChallengeSubmission(challengeId: string) {
+    const session = await auth();
+    if (!session?.user?.id) return;
+
+    await prisma.challengeSubmission.deleteMany({
+        where: {
+            userId: session.user.id,
+            challengeId: challengeId
+        }
+    });
+
+    revalidatePath("/challenges");
+}
+
+export async function resetCategorySubmissions(categorySlug: string) {
+    const session = await auth();
+    if (!session?.user?.id) return;
+
+    const category = await prisma.challengeCategory.findUnique({
+        where: { slug: categorySlug },
+        include: { challenges: { select: { id: true } } }
+    });
+
+    if (!category) return;
+
+    const challengeIds = category.challenges.map(c => c.id);
+
+    await prisma.challengeSubmission.deleteMany({
+        where: {
+            userId: session.user.id,
+            challengeId: { in: challengeIds }
         }
     });
 

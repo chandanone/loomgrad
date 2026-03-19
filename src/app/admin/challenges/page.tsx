@@ -55,9 +55,9 @@ export default async function AdminChallengesPage() {
                             >
                                 <div className="flex items-center gap-4">
                                     {/* Type icon */}
-                                    <div className={`p-3 rounded-xl ${cat.type === "MATH" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                                    <div className={`p-3 rounded-xl ${(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD") ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
                                         }`}>
-                                        {cat.type === "MATH"
+                                        {(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD")
                                             ? <Calculator className="w-5 h-5" />
                                             : <Code2 className="w-5 h-5" />
                                         }
@@ -68,8 +68,8 @@ export default async function AdminChallengesPage() {
                                         <div className="flex items-center gap-3 mb-1">
                                             <h3 className="font-bold text-lg leading-tight">{cat.title}</h3>
                                             <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${cat.isPublished
-                                                    ? "bg-green-50 text-green-600 border border-green-200"
-                                                    : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                                                ? "bg-green-50 text-green-600 border border-green-200"
+                                                : "bg-zinc-100 text-zinc-500 border border-zinc-200"
                                                 }`}>
                                                 {cat.isPublished ? "Published" : "Draft"}
                                             </span>
@@ -88,6 +88,8 @@ export default async function AdminChallengesPage() {
                                                 ))}
                                             </span>
                                             <span className="font-mono text-xs text-zinc-400">{cat.language}</span>
+                                            {cat.classLevel && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 rounded-md">{cat.classLevel}</span>}
+                                            {cat.subCategory && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 rounded-md">{cat.subCategory}</span>}
                                         </div>
                                     </div>
 

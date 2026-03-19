@@ -16,6 +16,9 @@ enum UserRole {
 enum ChallengeType {
   CODING
   MATH
+  CBSE
+  ICSE
+  JAC_BOARD
 }
 
 enum QuestionType {
@@ -257,6 +260,10 @@ model ChallengeCategory {
   isPublished    Boolean         @default(false)
   language       String          @default("JavaScript")
   helpText       String?         @db.Text
+  fullInstruction String?         @db.Text
+  assessmentMode String          @default("PRACTICE")
+  classLevel     String?
+  subCategory    String?
   orderIndex     Int             @default(0)
 
   challenges     Challenge[]
@@ -281,6 +288,7 @@ model Challenge {
   hint           String?           @db.Text
   correctAnswer  String?           @db.Text  // for FILL_BLANK
   isPublished    Boolean           @default(true)
+  language       String            @default("JavaScript") // For choosing coding sandbox
   orderIndex     Int               @default(0)
 
   category       ChallengeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
