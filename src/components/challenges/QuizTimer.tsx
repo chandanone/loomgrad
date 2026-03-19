@@ -6,11 +6,13 @@ import { Timer } from "lucide-react";
 export function QuizTimer({
     categorySlug,
     initialTimerLevel,
-    onTimeUp
+    onTimeUp,
+    isPaused = false
 }: {
     categorySlug: string;
     initialTimerLevel?: string;
     onTimeUp?: () => void;
+    isPaused?: boolean;
 }) {
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -33,14 +35,14 @@ export function QuizTimer({
     };
 
     useEffect(() => {
-        if (isTimerRunning && timeLeft !== null && timeLeft > 0) {
+        if (!isPaused && isTimerRunning && timeLeft !== null && timeLeft > 0) {
             const timer = setInterval(() => setTimeLeft(prev => (prev !== null ? prev - 1 : 0)), 1000);
             return () => clearInterval(timer);
-        } else if (timeLeft === 0) {
+        } else if (!isPaused && timeLeft === 0) {
             setIsTimerRunning(false);
             if (onTimeUp) onTimeUp();
         }
-    }, [isTimerRunning, timeLeft]);
+    }, [isTimerRunning, timeLeft, isPaused, onTimeUp]);
 
     useEffect(() => {
         if (!categorySlug) return;

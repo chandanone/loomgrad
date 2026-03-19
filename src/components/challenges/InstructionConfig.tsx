@@ -65,8 +65,16 @@ export function InstructionConfig({
 
             <div className="flex flex-col items-center gap-4">
                 <Link
-                    href={`/challenges/${categorySlug}/${firstChallengeSlug}${timerLevel !== "None" ? `?timer=${timerLevel}` : ""}`}
+                    href={`/challenges/${categorySlug}/${firstChallengeSlug}?${new URLSearchParams({
+                        ...(timerLevel !== "None" ? { timer: timerLevel } : {}),
+                        ...(hasSubmissions ? { reattempt: "true" } : {})
+                    }).toString()}`}
                     onClick={() => {
+                        // Clear previous markers for fresh run
+                        localStorage.removeItem(`visited_${categorySlug}`);
+                        localStorage.removeItem(`review_${categorySlug}`);
+                        localStorage.removeItem(`session_answered_${categorySlug}`);
+                        
                         if (timerLevel !== "None") {
                             const minutes = timerLevel === "Easy" ? 30 : timerLevel === "Moderate" ? 20 : 10;
                             const expiry = Date.now() + (minutes * 60 * 1000);

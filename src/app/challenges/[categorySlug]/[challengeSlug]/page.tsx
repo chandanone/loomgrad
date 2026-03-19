@@ -10,10 +10,10 @@ export default async function ChallengeSolvePage({
     searchParams
 }: {
     params: Promise<{ categorySlug: string; challengeSlug: string }>;
-    searchParams: Promise<{ timer?: string }>
+    searchParams: Promise<{ timer?: string; reattempt?: string; mode?: string }>
 }) {
     const { categorySlug, challengeSlug } = await params;
-    const { timer } = await searchParams;
+    const { timer, reattempt, mode } = await searchParams;
     const session = await auth();
 
     const category = await prisma.challengeCategory.findUnique({
@@ -60,12 +60,25 @@ export default async function ChallengeSolvePage({
     const nextChallenge = allChallenges[currentIndex + 1];
     const prevChallenge = allChallenges[currentIndex - 1];
 
+    const isReview = mode === "review";
+    // Determine if this is a re-attempt session
+    const isReattempt = !isReview && (reattempt === "true" || timer !== undefined);
+
+    // Build query string to carry session params into navigation URLs
+    const queryParts: string[] = [];
+    if (timer) queryParts.push(`timer=${encodeURIComponent(timer)}`);
+    if (reattempt === "true") queryParts.push(`reattempt=true`);
+    if (mode === "review") queryParts.push(`mode=review`);
+    const queryString = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+
+    // Bake the session params into prev/next URLs at the server level
+    // This is the most reliable way to preserve them — client-side getNavUrl is a fallback
     const nextChallengeUrl = nextChallenge
-        ? `/challenges/${categorySlug}/${nextChallenge.slug}`
+        ? `/challenges/${categorySlug}/${nextChallenge.slug}${queryString}`
         : undefined;
 
     const prevChallengeUrl = prevChallenge
-        ? `/challenges/${categorySlug}/${prevChallenge.slug}`
+        ? `/challenges/${categorySlug}/${prevChallenge.slug}${queryString}`
         : undefined;
 
     return (
@@ -104,13 +117,18 @@ export default async function ChallengeSolvePage({
                         name: session?.user?.name || "John Smith",
                         image: session?.user?.image || null
                     }}
-                    initialSubmission={(challenge.submissions as any[])?.[0] ? {
-                        submittedCode: (challenge.submissions as any[])[0].code,
-                        status: (challenge.submissions as any[])[0].status,
-                        passedTests: (challenge.submissions as any[])[0].passedTests,
-                        totalTests: (challenge.submissions as any[])[0].totalTests
-                    } : null}
-                    isReattempt={timer !== undefined}
+                    initialSubmission={
+                        // Don't pass old submission during re-attempt — guarantees a clean slate
+                        isReattempt ? null :
+                        (challenge.submissions as any[])?.[0] ? {
+                            submittedCode: (challenge.submissions as any[])[0].code,
+                            status: (challenge.submissions as any[])[0].status,
+                            passedTests: (challenge.submissions as any[])[0].passedTests,
+                            totalTests: (challenge.submissions as any[])[0].totalTests
+                        } : null
+                    }
+                    isReattempt={isReattempt}
+                    isReview={isReview}
                 />
             </div>
         </div>

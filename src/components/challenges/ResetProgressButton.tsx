@@ -33,6 +33,11 @@ export function ResetProgressButton({
         if (ok) {
             startTransition(async () => {
                 await resetCategorySubmissions(categorySlug);
+                // Clear local markers
+                localStorage.removeItem(`visited_${categorySlug}`);
+                localStorage.removeItem(`review_${categorySlug}`);
+                localStorage.removeItem(`session_answered_${categorySlug}`);
+                
                 if (redirectTo) {
                     router.push(redirectTo);
                 } else {

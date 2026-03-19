@@ -199,7 +199,7 @@ export default async function ChallengeResultPage({
                                         </div>
                                     )}
                                     <Link 
-                                        href={`/challenges/${categorySlug}/${ch.slug}`}
+                                        href={`/challenges/${categorySlug}/${ch.slug}?mode=review`}
                                         className="w-10 h-10 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 hover:bg-zinc-900 hover:text-white transition-all shadow-sm"
                                     >
                                         <ChevronRight className="w-5 h-5" />
