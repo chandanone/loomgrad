@@ -62,8 +62,8 @@ function SignUpPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen bg-white flex items-center justify-center py-24 px-6 md:py-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
+            <div className="w-full max-w-md mt-16 md:mt-0">
                 <div className="text-center mb-10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
                         <div className="bg-blue-600 p-2 rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-600/20">
