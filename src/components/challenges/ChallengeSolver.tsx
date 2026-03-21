@@ -552,7 +552,7 @@ export function ChallengeSolver({
     };
 
     const paletteClasses = (status: PaletteStatus, isCurrent: boolean, size: "sm" | "lg" = "lg") => {
-        const base = size === "lg" ? "w-10 h-10 text-xs" : "min-w-[44px] h-10 text-sm";
+        const base = size === "lg" ? "w-10 h-10 text-xs" : "min-w-[38px] h-8.5 text-xs";
         const ring = isCurrent ? " ring-2 ring-offset-1 ring-blue-500 scale-105 z-10" : "";
         switch (status) {
             case "answered-marked":
@@ -640,7 +640,7 @@ export function ChallengeSolver({
             </div>
 
             {/* Mobile Top Bar */}
-            <div className="md:hidden bg-[#1a2d4c] text-white px-4 py-3 flex items-center justify-between shrink-0">
+            <div className="md:hidden bg-[#1a2d4c] text-white px-4 py-2 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3 text-sm font-medium">
                     <span className="flex items-center gap-1">General Awareness <ChevronDown className="w-3 h-3" /></span>
                     <select 
@@ -658,7 +658,7 @@ export function ChallengeSolver({
             </div>
 
             {/* Mobile Timer Bar */}
-            <div className="md:hidden bg-[#4b77be] text-white px-4 py-1.5 flex items-center justify-end font-bold text-xs shrink-0">
+            <div className="md:hidden bg-[#4b77be] text-white px-4 py-0.5 flex items-center justify-end font-bold text-xs shrink-0">
                 <div className="flex items-center gap-2 bg-[#1a2d4c] px-3 py-1 rounded">
                     <span className="text-[10px] text-zinc-300">Time Left :</span>
                     {(assessmentMode === "EXAM" || initialTimerLevel) && (
@@ -679,7 +679,7 @@ export function ChallengeSolver({
             </div>
 
             {/* Mobile Question Palette (Horizontal Scroll) */}
-            <div className="md:hidden bg-[#f0f0f0] border-b border-zinc-300 py-2 px-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide shrink-0">
+            <div className="md:hidden bg-[#f0f0f0] border-b border-zinc-300 py-1 px-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide shrink-0">
                 {allChallenges.map((ch, idx) => {
                     const isCurrent = ch.id === id;
                     const status = getPaletteStatus(ch.id);
@@ -694,7 +694,7 @@ export function ChallengeSolver({
                         </button>
                     );
                 })}
-                <div className="min-w-[44px] h-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg mx-1 ml-auto">
+                <div className="min-w-[40px] h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg mx-1 ml-auto">
                     <Info className="w-5 h-5" />
                 </div>
             </div>
@@ -748,20 +748,20 @@ export function ChallengeSolver({
                     </div>
 
                     {/* Question Text & Options */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex-1 overflow-y-auto p-2 md:p-6">
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-start gap-4 mb-8">
+                            <div className="flex items-start gap-3 mb-2 md:mb-8">
                                 <span className="hidden md:block text-lg font-bold text-zinc-800 pt-0.5 whitespace-nowrap">
                                     Question No. {allChallenges.findIndex(c => c.id === id) + 1}
                                 </span>
                                 <div className="flex-1">
-                                    <div className="text-base md:text-lg text-zinc-900 mb-8 whitespace-pre-wrap leading-relaxed">
+                                    <div className="text-base md:text-lg text-zinc-900 mb-2 md:mb-8 whitespace-pre-wrap leading-relaxed">
                                         {formattedDescription()}
                                     </div>
 
                                     {/* MCQ Options */}
                                     {questionType.startsWith("MCQ") && (
-                                        <div className="space-y-4">
+                                        <div className="space-y-1.5 md:space-y-4">
                                             {options.map((opt, i) => {
                                                 const isSelected = selectedOptions.has(opt.id);
                                                 return (
@@ -780,14 +780,14 @@ export function ChallengeSolver({
                                                             setSelectedOptions(next);
                                                         }}
                                                         disabled={isReview}
-                                                        className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${isSelected
+                                                        className={`w-full py-2 px-3 md:p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${isSelected
                                                             ? "bg-blue-50 border-blue-500 shadow-sm"
                                                             : isReview 
                                                                 ? "bg-zinc-50 border-zinc-100 cursor-default opacity-80"
                                                                 : "bg-white border-zinc-100 hover:border-blue-200 hover:bg-zinc-50"
                                                             }`}
                                                     >
-                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "border-blue-600" : "border-zinc-400"}`}>
+                                                        <div className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "border-blue-600" : "border-zinc-400"}`}>
                                                             {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
                                                         </div>
                                                         <span className="text-zinc-800 text-sm font-medium">{opt.text}</span>
@@ -881,7 +881,7 @@ export function ChallengeSolver({
                     </div>
 
                     {/* Mobile Footer Action Bar */}
-                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-3 flex flex-col gap-2 shrink-0">
+                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-2 md:p-3 flex flex-col gap-1.5 shrink-0">
                         {!isReview && (
                             <div className="flex gap-2">
                                 <button
@@ -931,7 +931,7 @@ export function ChallengeSolver({
                     </div>
 
                     {/* Desktop Bottom Action Bar */}
-                    <div className="hidden md:flex border-t border-zinc-200 p-4 bg-white items-center justify-between shrink-0">
+                    <div className="hidden md:flex border-t border-zinc-200 p-2.5 md:p-4 bg-white items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
                             {!isReview && (
                                 <>
