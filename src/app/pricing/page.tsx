@@ -1,10 +1,37 @@
-
-import { Check, Zap, Rocket, Star } from "lucide-react";
+import { Check, Zap, Rocket, Star, Plus } from "lucide-react";
 import Link from "next/link";
 import RazorpayButton from "@/components/payment/RazorpayButton";
 import { SubscriptionTier } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+const AnimatedButtonInterior = ({ 
+    text, 
+    baseColorClass, 
+    hoverColorClass 
+}: { 
+    text: string, 
+    baseColorClass: string, 
+    hoverColorClass?: string 
+}) => {
+    return (
+        <div className="w-full h-full flex items-stretch gap-1 transition-all group-[]:hover:scale-[0.98]">
+            {/* Left Box */}
+            <div className={`w-0 opacity-0 overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group-hover:w-14 group-hover:opacity-100 shrink-0 rounded-l-xl ${baseColorClass} ${hoverColorClass || ""}`}>
+                <Plus className="w-5 h-5" />
+            </div>
+            {/* Main Text Box */}
+            <div className={`relative overflow-hidden flex-1 font-bold text-sm tracking-[0.15em] uppercase flex items-center justify-center rounded-r-xl group-hover:rounded-none transition-all duration-300 ${baseColorClass} ${hoverColorClass || ""}`}>
+                <div className="pointer-events-none absolute inset-0 z-20 -translate-x-[150%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/30 to-transparent transition-all duration-700 ease-out group-hover:translate-x-[150%]" />
+                <span className="relative z-10 whitespace-nowrap">{text}</span>
+            </div>
+            {/* Right Box */}
+            <div className={`w-14 opacity-100 overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group-hover:w-0 group-hover:opacity-0 shrink-0 rounded-r-xl ${baseColorClass} ${hoverColorClass || ""}`}>
+                <Plus className="w-5 h-5" />
+            </div>
+        </div>
+    );
+};
 
 const tiers = [
     {
@@ -134,24 +161,26 @@ export default async function PricingPage() {
                                 {tier.tier === SubscriptionTier.FREE ? (
                                     <Link
                                         href={session ? "/courses" : tier.href}
-                                        className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 ${isCurrentTier && session
-                                            ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                                            : "bg-zinc-900 text-white hover:bg-black"
-                                            }`}
+                                        className="group h-14 w-full block focus:outline-none rounded-xl overflow-hidden"
                                     >
-                                        {isCurrentTier && session ? "Current Plan" : (session ? "Browse Courses" : tier.buttonText)}
+                                        <AnimatedButtonInterior 
+                                            text={isCurrentTier && session ? "Current Plan" : (session ? "Browse Courses" : tier.buttonText)}
+                                            baseColorClass={isCurrentTier && session ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-zinc-900 text-white"}
+                                            hoverColorClass={!(isCurrentTier && session) ? "group-hover:bg-black" : ""}
+                                        />
                                     </Link>
                                 ) : (
                                     <RazorpayButton
                                         tier={tier.tier}
                                         label={isCurrentTier ? "Active Plan" : tier.buttonText}
-                                        className={`w-full py-4 rounded-xl font-bold text-sm text-center transition-all active:scale-95 flex items-center justify-center ${isCurrentTier
-                                            ? "bg-green-600 text-white cursor-default"
-                                            : (tier.highlight
-                                                ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20"
-                                                : "bg-zinc-900 text-white hover:bg-black")
-                                            }`}
-                                    />
+                                        className={`group h-14 w-full block focus:outline-none rounded-xl overflow-hidden ${isCurrentTier ? 'cursor-default pointer-events-none' : 'cursor-pointer'}`}
+                                    >
+                                        <AnimatedButtonInterior 
+                                            text={isCurrentTier ? "Active Plan" : tier.buttonText}
+                                            baseColorClass={isCurrentTier ? "bg-green-600 text-white" : (tier.highlight ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-zinc-900 text-white")}
+                                            hoverColorClass={isCurrentTier ? "" : (tier.highlight ? "group-hover:bg-blue-700" : "group-hover:bg-black")}
+                                        />
+                                    </RazorpayButton>
                                 )}
                             </div>
                         );

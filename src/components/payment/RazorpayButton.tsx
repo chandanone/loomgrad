@@ -21,9 +21,10 @@ interface RazorpayButtonProps {
     price?: number;
     label: string;
     className?: string;
+    children?: React.ReactNode;
 }
 
-export default function RazorpayButton({ tier, courseId, price, label, className }: RazorpayButtonProps) {
+export default function RazorpayButton({ tier, courseId, price, label, className, children }: RazorpayButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const { data: session } = useSession();
     const pathname = usePathname();
@@ -119,12 +120,12 @@ export default function RazorpayButton({ tier, courseId, price, label, className
             className={className}
         >
             {isLoading ? (
-                <>
+                <div className="flex items-center justify-center w-full">
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
-                </>
+                </div>
             ) : (
-                label
+                children || label
             )}
         </button>
     );
