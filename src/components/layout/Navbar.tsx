@@ -159,13 +159,13 @@ export default function Navbar() {
                         ) : (
                             <div className="flex items-center gap-2 md:gap-4">
                                 <Link
-                                    href="/auth/signin"
+                                    href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                                     className="hidden md:block text-sm font-semibold text-zinc-600 hover:text-blue-600 px-4 py-2 transition-colors"
                                 >
                                     Login
                                 </Link>
                                 <Link
-                                    href="/auth/signup"
+                                    href={`/auth/signup?callbackUrl=${encodeURIComponent(pathname)}`}
                                     className="bg-blue-600 text-white text-[13px] md:text-sm font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
                                 >
                                     <span className="hidden sm:inline">Join Now</span>
@@ -297,13 +297,13 @@ export default function Navbar() {
                                 ) : (
                                     <div className="grid grid-cols-2 gap-3">
                                         <Link
-                                            href="/auth/signin"
+                                            href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                                             className="flex items-center justify-center py-4 bg-white border border-zinc-100 text-zinc-900 rounded-2xl font-bold transition-all shadow-sm"
                                         >
                                             Log In
                                         </Link>
                                         <Link
-                                            href="/auth/signup"
+                                            href={`/auth/signup?callbackUrl=${encodeURIComponent(pathname)}`}
                                             className="flex items-center justify-center py-4 bg-blue-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
                                         >
                                             Sign Up

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Timer, Zap } from "lucide-react";
 import { ResetProgressButton } from "./ResetProgressButton";
 
@@ -19,6 +20,7 @@ export function InstructionConfig({
     hasSubmissions?: boolean;
 }) {
     const [timerLevel, setTimerLevel] = useState<"Easy" | "Moderate" | "Advance" | "None">("None");
+    const pathname = usePathname();
 
     const timerDuration = {
         "Easy": 30,
@@ -64,31 +66,40 @@ export function InstructionConfig({
             </div>
 
             <div className="flex flex-col items-center gap-4">
-                <Link
-                    href={`/challenges/${categorySlug}/${firstChallengeSlug}?${new URLSearchParams({
-                        ...(timerLevel !== "None" ? { timer: timerLevel } : {}),
-                        ...(hasSubmissions ? { reattempt: "true" } : {})
-                    }).toString()}`}
-                    onClick={() => {
-                        // Clear previous markers for fresh run
-                        localStorage.removeItem(`visited_${categorySlug}`);
-                        localStorage.removeItem(`review_${categorySlug}`);
-                        localStorage.removeItem(`session_answered_${categorySlug}`);
-                        
-                        if (timerLevel !== "None") {
-                            const minutes = timerLevel === "Easy" ? 30 : timerLevel === "Moderate" ? 20 : 10;
-                            const expiry = Date.now() + (minutes * 60 * 1000);
-                            localStorage.setItem(`timer_${categorySlug}`, JSON.stringify({ expiry, level: timerLevel }));
-                        } else {
-                            localStorage.removeItem(`timer_${categorySlug}`);
-                        }
-                    }}
-                    className="group flex items-center gap-3 bg-zinc-900 text-white px-10 py-5 rounded-full text-lg font-black hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-zinc-200"
-                >
-                    {hasSubmissions ? "RE-ATTEMPT CHALLENGE" : "START CHALLENGE"} <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                {!userName ? (
+                    <Link
+                        href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
+                        className="group flex items-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-full text-lg font-black hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-200"
+                    >
+                        LOGIN TO START <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                ) : (
+                    <Link
+                        href={`/challenges/${categorySlug}/${firstChallengeSlug}?${new URLSearchParams({
+                            ...(timerLevel !== "None" ? { timer: timerLevel } : {}),
+                            ...(hasSubmissions ? { reattempt: "true" } : {})
+                        }).toString()}`}
+                        onClick={() => {
+                            // Clear previous markers for fresh run
+                            localStorage.removeItem(`visited_${categorySlug}`);
+                            localStorage.removeItem(`review_${categorySlug}`);
+                            localStorage.removeItem(`session_answered_${categorySlug}`);
+                            
+                            if (timerLevel !== "None") {
+                                const minutes = timerLevel === "Easy" ? 30 : timerLevel === "Moderate" ? 20 : 10;
+                                const expiry = Date.now() + (minutes * 60 * 1000);
+                                localStorage.setItem(`timer_${categorySlug}`, JSON.stringify({ expiry, level: timerLevel }));
+                            } else {
+                                localStorage.removeItem(`timer_${categorySlug}`);
+                            }
+                        }}
+                        className="group flex items-center gap-3 bg-zinc-900 text-white px-10 py-5 rounded-full text-lg font-black hover:bg-black transition-all hover:scale-105 active:scale-95 shadow-xl shadow-zinc-200"
+                    >
+                        {hasSubmissions ? "RE-ATTEMPT CHALLENGE" : "START CHALLENGE"} <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                )}
 
-                {hasSubmissions && (
+                {hasSubmissions && userName && (
                     <div className="flex flex-col items-center gap-2">
                         <Link
                             href={`/challenges/${categorySlug}/result`}
@@ -105,7 +116,7 @@ export function InstructionConfig({
                 )}
 
                 <p className="text-zinc-400 text-xs font-bold mt-2 uppercase tracking-widest text-center">
-                    Good luck, {userName || "Player"}!
+                    {userName ? `Good luck, ${userName}!` : "Please login to track your progress"}
                 </p>
             </div>
         </div>

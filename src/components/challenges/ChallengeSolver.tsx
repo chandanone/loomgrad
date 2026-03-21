@@ -661,7 +661,7 @@ export function ChallengeSolver({
             <div className="md:hidden bg-[#4b77be] text-white px-4 py-1.5 flex items-center justify-end font-bold text-xs shrink-0">
                 <div className="flex items-center gap-2 bg-[#1a2d4c] px-3 py-1 rounded">
                     <span className="text-[10px] text-zinc-300">Time Left :</span>
-                    {assessmentMode === "EXAM" && (
+                    {(assessmentMode === "EXAM" || initialTimerLevel) && (
                         <QuizTimer 
                             categorySlug={categorySlug} 
                             initialTimerLevel={initialTimerLevel} 
@@ -899,14 +899,18 @@ export function ChallengeSolver({
                             </div>
                         )}
                         <div className="flex gap-2">
+                            {/* Navigation Buttons */}
+                            {prevChallengeUrl && (
+                                <Link
+                                    href={getNavUrl(prevChallengeUrl)}
+                                    className="flex-1 py-3 bg-white border border-zinc-300 text-zinc-700 text-sm font-bold rounded shadow-sm text-center"
+                                >
+                                    Previous
+                                </Link>
+                            )}
+
                             {!isReview && (
                                 <>
-                                    <button
-                                        onClick={() => handleSubmitExam(false)}
-                                        className="flex-1 py-3 bg-[#87b1f5] hover:bg-[#6c9ef2] text-white text-sm font-bold rounded shadow-inner"
-                                    >
-                                        Submit
-                                    </button>
                                     <button
                                         onClick={handleSubmitQuiz}
                                         className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner"
@@ -959,12 +963,14 @@ export function ChallengeSolver({
                                 </Link>
                             )}
                             {!isReview ? (
-                                <button
-                                    onClick={handleSubmitQuiz}
-                                    className="px-8 py-2.5 bg-[#007ba1] hover:bg-[#005a76] text-white text-sm font-bold transition-colors shadow-md rounded"
-                                >
-                                    Save & Next
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={handleSubmitQuiz}
+                                        className="px-8 py-2.5 bg-[#007ba1] hover:bg-[#005a76] text-white text-sm font-bold transition-colors shadow-md rounded"
+                                    >
+                                        Save & Next
+                                    </button>
+                                </div>
                             ) : nextChallengeUrl && (
                                 <Link
                                     href={getNavUrl(nextChallengeUrl)}
@@ -982,7 +988,7 @@ export function ChallengeSolver({
                     {/* User Profile */}
                     <div className="p-4 flex items-center gap-4 bg-white border-b border-zinc-200">
                         {user.image ? (
-                            <img src={user.image} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
+                            <img src={user.image || undefined} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
                         ) : (
                             <div className="w-16 h-20 bg-zinc-100 rounded flex items-center justify-center border border-zinc-200 shadow-sm">
                                 <User className="w-8 h-8 text-zinc-300" />
@@ -1065,7 +1071,7 @@ export function ChallengeSolver({
                     </div>
 
                     {/* Submit Button */}
-                    {!isReview && assessmentMode === "EXAM" && (
+                    {!isReview && (
                         <div className="p-4 bg-[#f2f8fc] border-t border-zinc-300 shrink-0">
                             <button 
                                 onClick={() => handleSubmitExam(false)}
@@ -1100,7 +1106,7 @@ export function ChallengeSolver({
                         {/* User Profile */}
                         <div className="p-4 flex items-center gap-4 bg-white border-b border-zinc-200">
                             {user.image ? (
-                                <img src={user.image} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
+                                <img src={user.image || undefined} alt={user.name} className="w-16 h-20 object-cover rounded shadow-sm bg-zinc-100" />
                             ) : (
                                 <div className="w-16 h-20 bg-zinc-100 rounded flex items-center justify-center border border-zinc-200 shadow-sm">
                                     <User className="w-8 h-8 text-zinc-300" />
@@ -1177,7 +1183,7 @@ export function ChallengeSolver({
                             </div>
                         </div>
 
-                        {!isReview && assessmentMode === "EXAM" && (
+                        {!isReview && (
                             <div className="p-4 bg-zinc-50 border-t border-zinc-200 mt-auto shrink-0">
                                 <button 
                                     onClick={() => handleSubmitExam(false)}

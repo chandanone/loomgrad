@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import { createRazorpayOrder, verifyPayment } from "@/actions/razorpay";
 import { SubscriptionTier } from "@prisma/client";
 import { toast } from "sonner";
@@ -23,6 +25,9 @@ interface RazorpayButtonProps {
 
 export default function RazorpayButton({ tier, courseId, price, label, className }: RazorpayButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const { data: session } = useSession();
+    const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         const script = document.createElement("script");
@@ -36,6 +41,12 @@ export default function RazorpayButton({ tier, courseId, price, label, className
     }, []);
 
     const handlePayment = async () => {
+        if (!session) {
+            toast.error("Please login to continue with the purchase");
+            router.push(`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`);
+            return;
+        }
+
         setIsLoading(true);
         try {
             const result = await createRazorpayOrder({ tier, courseId });

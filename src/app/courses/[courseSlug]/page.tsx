@@ -155,7 +155,7 @@ export default async function CourseOverviewPage({ params, searchParams }: Cours
 
                         {!session?.user ? (
                             <Link
-                                href="/auth/signin"
+                                href={`/auth/signin?callbackUrl=${encodeURIComponent(`/courses/${courseSlug}`)}`}
                                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
                             >
                                 <Lock className="w-5 h-5" />
