@@ -11,13 +11,15 @@ export function InstructionConfig({
     firstChallengeSlug,
     assessmentMode,
     userName,
-    hasSubmissions
+    hasSubmissions,
+    lastSubmissionDate
 }: {
     categorySlug: string;
     firstChallengeSlug: string;
     assessmentMode: string;
     userName?: string | null;
     hasSubmissions?: boolean;
+    lastSubmissionDate?: string | null;
 }) {
     const [timerLevel, setTimerLevel] = useState<"Easy" | "Moderate" | "Advance" | "None">("None");
     const pathname = usePathname();
@@ -103,9 +105,20 @@ export function InstructionConfig({
                     <div className="flex flex-col items-center gap-2">
                         <Link
                             href={`/challenges/${categorySlug}/result`}
-                            className="text-blue-600 font-bold hover:underline py-1 text-sm"
+                            className="text-blue-600 font-bold hover:underline py-1 text-sm flex flex-col items-center"
                         >
-                            View Previous Result
+                            <span>View Previous Result</span>
+                            {lastSubmissionDate && (
+                                <span suppressHydrationWarning className="text-[10px] text-zinc-400 font-medium">
+                                    Last attempt: {new Date(lastSubmissionDate).toLocaleString('en-IN', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </span>
+                            )}
                         </Link>
                         <ResetProgressButton 
                             categorySlug={categorySlug} 
