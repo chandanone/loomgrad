@@ -14,7 +14,8 @@ import {
     Settings,
     LayoutDashboard,
     ChevronRight,
-    ArrowRight
+    ArrowRight,
+    Plus
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -159,18 +160,33 @@ export default function Navbar() {
                         ) : (
                             <div className="flex items-center gap-2 md:gap-4">
                                 <Link
-                                    href="/auth/signin"
+                                    href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                                     className="hidden md:block text-sm font-semibold text-zinc-600 hover:text-blue-600 px-4 py-2 transition-colors"
                                 >
                                     Login
                                 </Link>
                                 <Link
-                                    href="/auth/signup"
-                                    className="bg-blue-600 text-white text-[13px] md:text-sm font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
+                                    href={`/auth/signup?callbackUrl=${encodeURIComponent(pathname)}`}
+                                    className="group flex items-stretch gap-1 h-9 md:h-10 active:scale-95 transition-all"
                                 >
-                                    <span className="hidden sm:inline">Join Now</span>
-                                    <span className="sm:hidden">Join</span>
-                                    <ArrowRight className="w-4 h-4" />
+                                    {/* Left Plus Box (Reveals on hover) */}
+                                    <div className="w-0 opacity-0 overflow-hidden bg-blue-600 text-white flex items-center justify-center transition-all duration-300 ease-out group-hover:w-9 md:group-hover:w-10 group-hover:opacity-100 shrink-0 rounded-l-xl">
+                                        <Plus className="w-4 h-4" />
+                                    </div>
+
+                                    {/* Main Text Box */}
+                                    <div className="relative overflow-hidden bg-blue-600 text-white text-[11px] md:text-[13px] font-bold px-4 md:px-5 flex items-center justify-center tracking-widest uppercase rounded-r-xl group-hover:rounded-r-none group-hover:rounded-l-none transition-all duration-300">
+                                        {/* Shine Overlay */}
+                                        <div className="pointer-events-none absolute inset-0 z-20 -translate-x-[150%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/40 to-transparent transition-all duration-700 ease-out group-hover:translate-x-[150%]" />
+                                        
+                                        <span className="hidden sm:inline relative z-10">Join Now</span>
+                                        <span className="sm:hidden relative z-10">Join</span>
+                                    </div>
+
+                                    {/* Right Plus Box (Hides on hover) */}
+                                    <div className="w-9 md:w-10 opacity-100 overflow-hidden bg-blue-600 text-white flex items-center justify-center transition-all duration-300 ease-out group-hover:w-0 group-hover:opacity-0 shrink-0 rounded-r-xl">
+                                        <Plus className="w-4 h-4" />
+                                    </div>
                                 </Link>
                             </div>
                         )}
@@ -297,13 +313,13 @@ export default function Navbar() {
                                 ) : (
                                     <div className="grid grid-cols-2 gap-3">
                                         <Link
-                                            href="/auth/signin"
+                                            href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                                             className="flex items-center justify-center py-4 bg-white border border-zinc-100 text-zinc-900 rounded-2xl font-bold transition-all shadow-sm"
                                         >
                                             Log In
                                         </Link>
                                         <Link
-                                            href="/auth/signup"
+                                            href={`/auth/signup?callbackUrl=${encodeURIComponent(pathname)}`}
                                             className="flex items-center justify-center py-4 bg-blue-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
                                         >
                                             Sign Up

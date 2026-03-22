@@ -1,28 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSession, signIn, getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect } from "react";
 import { BookOpen, Github, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-export default function SignInPage() {
+function SignInPageContent() {
     const { data: session, status } = useSession();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl");
 
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             if (session.user.role === "ADMIN") {
                 router.push("/admin");
+            } else if (callbackUrl) {
+                router.push(callbackUrl);
             } else {
                 router.push("/");
             }
         }
-    }, [session, status, router]);
+    }, [session, status, router, callbackUrl]);
 
     if (status === "loading" || status === "authenticated") {
         return (
@@ -62,6 +66,9 @@ export default function SignInPage() {
                 if (session?.user?.role === "ADMIN") {
                     toast.success("Welcome back, Admin! Redirecting to dashboard...");
                     router.push("/admin");
+                } else if (callbackUrl) {
+                    toast.success("Signed in successfully!");
+                    router.push(callbackUrl);
                 } else {
                     toast.success("Signed in successfully!");
                     router.push("/");
@@ -74,8 +81,8 @@ export default function SignInPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen bg-white flex items-center justify-center py-24 px-6 md:py-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
+            <div className="w-full max-w-md mt-16 md:mt-0">
                 <div className="text-center mb-10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
                         <div className="bg-blue-600 p-2 rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-600/20">
@@ -168,10 +175,22 @@ export default function SignInPage() {
 
                     <p className="mt-8 text-center text-sm text-zinc-500">
                         Don't have an account?{" "}
-                        <Link href="/auth/signup" className="text-blue-600 font-medium hover:text-blue-700 transition-colors">Sign up</Link>
+                        <Link href={`/auth/signup${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">Sign up</Link>
                     </p>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignInPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+            </div>
+        }>
+            <SignInPageContent />
+        </Suspense>
     );
 }

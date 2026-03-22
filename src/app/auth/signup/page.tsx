@@ -1,24 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { BookOpen, User as UserIcon, Mail, Lock, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { register } from "@/actions/auth";
 
-export default function SignUpPage() {
+function SignUpPageContent() {
     const { data: session, status } = useSession();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl");
 
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
-            router.push("/");
+            if (callbackUrl) {
+                router.push(callbackUrl);
+            } else {
+                router.push("/");
+            }
         }
-    }, [session, status, router]);
+    }, [session, status, router, callbackUrl]);
 
     if (status === "loading" || status === "authenticated") {
         return (
@@ -46,7 +52,7 @@ export default function SignUpPage() {
                 toast.error(res.error);
             } else {
                 toast.success("Account created successfully! Please sign in.");
-                router.push("/auth/signin");
+                router.push("/auth/signin" + (callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""));
             }
         } catch (err) {
             setError("Something went wrong. Please try again.");
@@ -56,8 +62,8 @@ export default function SignUpPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen bg-white flex items-center justify-center py-24 px-6 md:py-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
+            <div className="w-full max-w-md mt-16 md:mt-0">
                 <div className="text-center mb-10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-4">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
                         <div className="bg-blue-600 p-2 rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-600/20">
@@ -165,7 +171,7 @@ export default function SignUpPage() {
 
                     <p className="mt-8 text-center text-sm text-zinc-500">
                         Already have an account?{" "}
-                        <Link href="/auth/signin" className="text-blue-600 font-medium hover:text-blue-700 transition-colors">Sign in</Link>
+                        <Link href={`/auth/signin${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">Sign in</Link>
                     </p>
                 </div>
 
@@ -176,5 +182,17 @@ export default function SignUpPage() {
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+            </div>
+        }>
+            <SignUpPageContent />
+        </Suspense>
     );
 }

@@ -16,7 +16,7 @@ export default async function ChallengeResultPage({
     const { categorySlug } = await params;
     const session = await auth();
 
-    if (!session?.user) redirect("/auth/login");
+    if (!session?.user) redirect("/auth/signin");
 
     const category = await prisma.challengeCategory.findUnique({
         where: { slug: categorySlug },

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useScroll, useTransform, type Variants } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { motion, useScroll, useTransform, AnimatePresence, type Variants } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
@@ -19,7 +20,7 @@ import {
   Lock,
   Heart
 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -41,7 +42,76 @@ const itemVariants: Variants = {
   },
 };
 
+const DoubleBlockReveal = ({
+  children,
+  delayOffset = 0,
+  block1Color = "bg-[#ff4a11]", // Using the LoomGrad/Requested Orange-Red
+  block2Color = "bg-zinc-950"
+}: {
+  children: React.ReactNode,
+  delayOffset?: number,
+  block1Color?: string,
+  block2Color?: string
+}) => {
+  return (
+    <div className="relative inline-block overflow-hidden pb-2">
+      <motion.div
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { delay: 0.5 + delayOffset, duration: 0.1 } }
+        }}
+      >
+        {children}
+      </motion.div>
+
+      {/* Block 1 (Red) */}
+      <motion.div
+        variants={{
+          hidden: { left: 0, width: "0%" },
+          visible: {
+            left: ["0%", "0%", "100%"],
+            width: ["0%", "100%", "0%"],
+            transition: { duration: 1, times: [0, 0.4, 1], ease: [0.77, 0, 0.17, 1], delay: delayOffset }
+          }
+        }}
+        className={`absolute inset-0 z-20 ${block1Color}`}
+      />
+
+      {/* Block 2 (Black) */}
+      <motion.div
+        variants={{
+          hidden: { left: 0, width: "0%" },
+          visible: {
+            left: ["0%", "0%", "100%"],
+            width: ["0%", "100%", "0%"],
+            transition: { duration: 1.1, times: [0, 0.5, 1], ease: [0.77, 0, 0.17, 1], delay: 0.1 + delayOffset }
+          }
+        }}
+        className={`absolute inset-0 z-30 ${block2Color}`}
+      />
+    </div>
+  );
+};
+
+
 export default function LandingPage() {
+  const router = useRouter();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const targetRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: targetRef,
@@ -83,20 +153,30 @@ export default function LandingPage() {
 
             <motion.h1
               variants={itemVariants}
-              className="text-6xl md:text-9xl font-black tracking-tight mb-8 leading-[0.9]"
+              className="font-black tracking-tighter mb-8 leading-[1.1] md:leading-[0.85] flex flex-col items-center gap-2 md:gap-6 text-center px-4 w-full"
             >
-              Learn to Code <br />
-              <span className="relative">
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Differently.
+              <DoubleBlockReveal delayOffset={0}>
+                <span className="text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] text-zinc-800 break-words block">
+                  Classroom to Career.
                 </span>
-                <motion.div
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 1, duration: 0.8 }}
-                  className="absolute -bottom-2 left-0 right-0 h-2 bg-blue-100 -z-10 origin-left"
-                />
-              </span>
+              </DoubleBlockReveal>
+
+              <DoubleBlockReveal delayOffset={0.2} block1Color="bg-blue-600">
+                <span className="text-4xl sm:text-6xl md:text-7xl lg:text-[8rem] tracking-tight block mt-2 md:mt-0">
+                  <span className="inline-block mr-1 lg:mr-3">Learn</span>
+                  <span className="relative inline-block pb-1">
+                    <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent decoration-clone">
+                      Differently.
+                    </span>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 1.5, duration: 0.8 }}
+                      className="absolute bottom-0 left-0 right-0 h-2 md:h-3 bg-blue-500/80 -z-10 origin-left rounded-full"
+                    />
+                  </span>
+                </span>
+              </DoubleBlockReveal>
             </motion.h1>
 
             <motion.p
@@ -107,24 +187,27 @@ export default function LandingPage() {
               and a premium learning experience designed for 10x developers.
             </motion.p>
 
-            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link
-                href="/courses"
-                className="group relative px-10 py-5 bg-zinc-900 text-white font-black rounded-2xl overflow-hidden shadow-2xl transition-all hover:scale-105 active:scale-95"
+            <motion.div variants={itemVariants} className="w-full max-w-lg mx-auto mb-10 mt-6 relative z-10">
+              <button 
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                className="relative flex items-center h-12 w-full bg-white rounded-full pl-4 pr-3 text-sm text-zinc-500 shadow-sm ring-1 ring-zinc-900/10 transition hover:ring-zinc-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="relative z-10 flex items-center gap-3">
-                  Browse Courses <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </Link>
+                <Search className="w-5 h-5 text-zinc-400 group-hover:text-blue-500 transition-colors" />
+                <span className="flex-1 bg-transparent px-3 text-left text-zinc-400 outline-none w-full">Search courses...</span>
+                <kbd className="hidden sm:flex items-center font-sans font-medium text-xs text-zinc-400 ml-auto bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded">
+                  <span className="text-[10px] mr-1">Ctrl</span> K
+                </kbd>
+              </button>
+            </motion.div>
 
-              <Link
-                href="/pricing"
-                className="flex items-center gap-2 px-10 py-5 bg-white text-zinc-900 font-black rounded-2xl border-2 border-zinc-100 hover:border-blue-500/30 hover:bg-zinc-50 transition-all shadow-lg active:scale-95"
-              >
-                <Zap className="w-5 h-5 text-blue-600 fill-blue-600" />
-                Go Pro
-              </Link>
+            <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-3 text-sm text-zinc-500">
+              <span className="font-semibold uppercase text-xs tracking-wider">Popular:</span>
+              {['Next.js 15', 'Python', 'System Design', 'React'].map(tag => (
+                <Link key={tag} href={`/courses?q=${encodeURIComponent(tag)}`} className="px-4 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 hover:border-zinc-300 hover:text-zinc-900 transition-colors">
+                  {tag}
+                </Link>
+              ))}
             </motion.div>
 
             {/* Floating Tech Stack Icons */}
@@ -413,6 +496,76 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* Global Command Palette / Search Modal */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-start justify-center pt-24 sm:pt-32 px-4 backdrop-blur-sm bg-zinc-900/40"
+            onClick={() => setIsSearchOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-zinc-200"
+            >
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = new FormData(e.currentTarget).get('q');
+                  if (q) {
+                    setIsSearchOpen(false);
+                    router.push(`/courses?q=${encodeURIComponent(q as string)}`);
+                  }
+                }}
+                className="flex items-center border-b border-zinc-100 px-6 py-4"
+              >
+                <Search className="w-5 h-5 text-blue-600 mr-3" />
+                <input
+                  name="q"
+                  autoFocus
+                  type="text"
+                  placeholder="Search for Next.js, Python, Architecture..."
+                  className="flex-1 bg-transparent px-2 text-lg outline-none text-zinc-900 placeholder:text-zinc-400"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setIsSearchOpen(false)} 
+                  className="ml-4 p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors text-[10px] uppercase font-bold tracking-wider border border-zinc-200"
+                >
+                   ESC
+                </button>
+              </form>
+              
+              <div className="p-4 bg-zinc-50/50">
+                 <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 px-3">Trending Searches</div>
+                 <div className="flex flex-col gap-1">
+                   {['Fullstack Authentications', 'System Design Patterns', 'Advanced React Hooks', 'Golang Microservices'].map((tag, idx) => (
+                      <button 
+                        key={tag} 
+                        type="button" 
+                        onClick={() => {
+                          setIsSearchOpen(false);
+                          router.push(`/courses?q=${encodeURIComponent(tag)}`);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-zinc-900/5 text-sm text-zinc-600 hover:text-zinc-900 transition-all text-left w-full group"
+                      >
+                        <Search className="w-4 h-4 text-zinc-400 group-hover:text-blue-500 transition-colors" />
+                        <span className="flex-1 font-medium">{tag}</span>
+                        <ArrowRight className="w-4 h-4 text-zinc-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      </button>
+                   ))}
+                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

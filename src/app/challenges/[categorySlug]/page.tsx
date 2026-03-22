@@ -29,14 +29,18 @@ export default async function CategoryInstructionPage({
     if (!category) notFound();
 
     let hasSubmissions = false;
+    let lastSubmissionDate: string | null = null; // Changed type to string | null
     if (session?.user?.id) {
-        const subCount = await prisma.challengeSubmission.count({
+        const lastSub = await prisma.challengeSubmission.findFirst({
             where: {
                 userId: session.user.id,
                 challenge: { categoryId: category.id }
-            }
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true }
         });
-        hasSubmissions = subCount > 0;
+        hasSubmissions = !!lastSub;
+        lastSubmissionDate = lastSub?.createdAt?.toISOString() || null;
     }
 
     const firstChallenge = category.challenges[0];
@@ -118,6 +122,7 @@ export default async function CategoryInstructionPage({
                     assessmentMode={category.assessmentMode}
                     userName={session?.user?.name}
                     hasSubmissions={hasSubmissions}
+                    lastSubmissionDate={lastSubmissionDate}
                 />
             </div>
         </div>

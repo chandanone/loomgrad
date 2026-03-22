@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Zap, CheckCircle2, LogIn } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface PaywallProps {
     isLoggedIn?: boolean;
@@ -11,6 +13,7 @@ interface PaywallProps {
 
 export default function Paywall({ isLoggedIn, courseOffersTrial }: PaywallProps) {
     const showTrialOption = !isLoggedIn && courseOffersTrial;
+    const pathname = usePathname();
 
     return (
         <motion.div
@@ -53,7 +56,7 @@ export default function Paywall({ isLoggedIn, courseOffersTrial }: PaywallProps)
                     <div className="space-y-2 sm:space-y-3">
                         {showTrialOption && (
                             <Link
-                                href="/auth/signin"
+                                href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}
                                 className="group block w-full bg-white border border-zinc-200 hover:border-blue-500 text-zinc-900 font-bold py-2.5 sm:py-3.5 rounded-xl transition-all active:scale-95 shadow-sm"
                             >
                                 <span className="flex items-center justify-center gap-2 text-sm sm:text-base">
