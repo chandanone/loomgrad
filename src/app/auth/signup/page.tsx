@@ -65,7 +65,7 @@ function SignUpPageContent() {
         <div className="min-h-screen bg-white flex items-center justify-center py-6 px-4 md:py-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-white">
             <div className="w-full max-w-md">
                 <div className="bg-white border border-zinc-200 p-5 sm:p-7 rounded-[2rem] shadow-2xl transition-all duration-700 animate-in fade-in slide-in-from-bottom-8">
-                    <div className="text-center mb-6">
+                    <div className="text-center mb-6 mt-2 md:mt-4">
                         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Create Account</h1>
                         <p className="text-zinc-500 text-sm">Join the elite community of developers.</p>
                     </div>
