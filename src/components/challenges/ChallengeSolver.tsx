@@ -95,28 +95,36 @@ export function ChallengeSolver({
     const outputRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // ─── State Initialization ─────────────────────────────────────────────
     const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
-    
-    const [markedForReview, setMarkedForReview] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`review_${categorySlug}`);
-        return new Set<string>(saved ? JSON.parse(saved) : []);
-    });
+    const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
+    const [visited, setVisited] = useState<Set<string>>(new Set());
+    const [localAnswered, setLocalAnswered] = useState<Set<string>>(new Set());
 
-    const [visited, setVisited] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`visited_${categorySlug}`);
-        const set = new Set<string>(saved ? JSON.parse(saved) : []);
-        set.add(id); // Ensure current is always visited
-        return set;
-    });
+    // Initialize state from localStorage after mount
+    useEffect(() => {
+        if (!isMounted) return;
+        
+        const reviewData = localStorage.getItem(`review_${categorySlug}`);
+        if (reviewData) setMarkedForReview(new Set(JSON.parse(reviewData)));
 
-    const [localAnswered, setLocalAnswered] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`session_answered_${categorySlug}`);
-        return new Set<string>(saved ? JSON.parse(saved) : []);
-    });
+        const visitedData = localStorage.getItem(`visited_${categorySlug}`);
+        if (visitedData) {
+            const set = new Set<string>(JSON.parse(visitedData));
+            set.add(id);
+            setVisited(set);
+        } else {
+            setVisited(new Set([id]));
+        }
+
+        const answeredData = localStorage.getItem(`session_answered_${categorySlug}`);
+        if (answeredData) setLocalAnswered(new Set(JSON.parse(answeredData)));
+    }, [isMounted, categorySlug, id]);
 
     // Save visited immediately on mount/id change
     useEffect(() => {
@@ -129,18 +137,22 @@ export function ChallengeSolver({
     }, [id]);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
+        if (isMounted) {
             localStorage.setItem(`visited_${categorySlug}`, JSON.stringify(Array.from(visited)));
         }
-    }, [visited, categorySlug]);
+    }, [visited, categorySlug, isMounted]);
 
     useEffect(() => {
-        localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
-    }, [markedForReview, categorySlug]);
+        if (isMounted) {
+            localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
+        }
+    }, [markedForReview, categorySlug, isMounted]);
 
     useEffect(() => {
-        localStorage.setItem(`session_answered_${categorySlug}`, JSON.stringify(Array.from(localAnswered)));
-    }, [localAnswered, categorySlug]);
+        if (isMounted) {
+            localStorage.setItem(`session_answered_${categorySlug}`, JSON.stringify(Array.from(localAnswered)));
+        }
+    }, [localAnswered, categorySlug, isMounted]);
 
     // Fill Blank State: Always start empty
     const [fillAnswer, setFillAnswer] = useState("");
@@ -538,6 +550,7 @@ export function ChallengeSolver({
     // ─── Unified palette status helper ───────────────────────────────────────
     type PaletteStatus = "not-visited" | "not-answered" | "answered" | "marked" | "answered-marked";
     const getPaletteStatus = (challengeId: string): PaletteStatus => {
+        if (!isMounted) return challengeId === id ? "not-answered" : "not-visited";
         const effectiveAnswered = isReattempt
             ? localAnswered.has(challengeId)
             : (allChallenges.find(c => c.id === challengeId)?.isAnswered || localAnswered.has(challengeId));
@@ -880,54 +893,69 @@ export function ChallengeSolver({
                         </div>
                     </div>
 
-                    {/* Mobile Footer Action Bar */}
-                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-2 md:p-3 flex flex-col gap-1.5 shrink-0">
-                        {!isReview && (
-                            <div className="flex gap-2">
+                    {/* Mobile Footer Action Bar — matches reference image layout */}
+                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-2 flex flex-col gap-2 shrink-0">
+                        {/* Row 1: Clear Response | Previous | Mark for Review & Next */}
+                        <div className="flex gap-1.5">
+                            {!isReview && (
                                 <button
                                     onClick={handleClearResponse}
-                                    className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
                                 >
                                     Clear Response
                                 </button>
-                                <button
-                                    onClick={handleMarkForReviewAndNext}
-                                    className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
-                                >
-                                    Mark for Review & Next
-                                </button>
-                            </div>
-                        )}
-                        <div className="flex gap-2">
-                            {/* Navigation Buttons */}
-                            {prevChallengeUrl && (
+                            )}
+                            {/* Previous: always rendered from Q2+, greyed out otherwise */}
+                            {prevChallengeUrl ? (
                                 <Link
                                     href={getNavUrl(prevChallengeUrl)}
-                                    className="flex-1 py-3 bg-white border border-zinc-300 text-zinc-700 text-sm font-bold rounded shadow-sm text-center"
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-500 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
                                 >
                                     Previous
                                 </Link>
+                            ) : (
+                                <button
+                                    disabled
+                                    className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-300 text-[11px] font-bold rounded shadow-sm cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
                             )}
-
                             {!isReview && (
-                                <>
-                                    <button
-                                        onClick={handleSubmitQuiz}
-                                        className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner"
-                                    >
-                                        Save & Next
-                                    </button>
-                                </>
+                                <button
+                                    onClick={handleMarkForReviewAndNext}
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
+                                >
+                                    Mark for Review & Next
+                                </button>
                             )}
                             {isReview && nextChallengeUrl && (
                                 <Link
                                     href={getNavUrl(nextChallengeUrl)}
-                                    className="flex-1 py-3 bg-[#007ba1] text-white text-sm font-bold rounded shadow-inner text-center"
+                                    className="flex-1 py-2.5 bg-[#007ba1] text-white text-[11px] font-bold rounded shadow-sm text-center active:opacity-90"
                                 >
                                     Next Question
                                 </Link>
                             )}
                         </div>
+
+                        {/* Row 2: Submit | Save & Next */}
+                        {!isReview && (
+                            <div className="flex gap-1.5">
+                                <button
+                                    onClick={() => handleSubmitExam(false)}
+                                    className="flex-1 py-3 bg-[#5bc0de] hover:bg-[#31b0d5] text-white text-sm font-bold rounded shadow-sm active:opacity-90"
+                                >
+                                    Submit
+                                </button>
+                                <button
+                                    onClick={handleSubmitQuiz}
+                                    className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner active:opacity-90"
+                                >
+                                    Save & Next
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Desktop Bottom Action Bar */}
@@ -1083,7 +1111,7 @@ export function ChallengeSolver({
                     )}
                 </div>
             </div>
-            {/* Mobile Sidebar/Drawer Backdrop */}
+
             {showMobileMenu && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-[100] md:hidden"
@@ -1182,17 +1210,6 @@ export function ChallengeSolver({
                                 })}
                             </div>
                         </div>
-
-                        {!isReview && (
-                            <div className="p-4 bg-zinc-50 border-t border-zinc-200 mt-auto shrink-0">
-                                <button 
-                                    onClick={() => handleSubmitExam(false)}
-                                    className="w-full bg-[#5bc0de] text-white font-bold py-3 rounded shadow-sm text-sm"
-                                >
-                                    Final Submit
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
