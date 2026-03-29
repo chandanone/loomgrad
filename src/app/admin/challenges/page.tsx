@@ -20,14 +20,14 @@ export default async function AdminChallengesPage() {
         <div className="min-h-screen bg-white text-zinc-900 p-8">
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-1">Challenge Manager</h1>
-                        <p className="text-zinc-500 text-sm">Create and manage standalone coding & math challenge sets.</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">Challenge Manager</h1>
+                        <p className="text-zinc-500 text-sm">Create and manage standalone challenge sets.</p>
                     </div>
                     <Link
                         href="/admin/challenges/new"
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md shadow-blue-200"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md shadow-blue-200 w-full sm:w-auto text-sm"
                     >
                         <Plus className="w-4 h-4" /> New Category
                     </Link>
@@ -51,21 +51,34 @@ export default async function AdminChallengesPage() {
                         {categories.map((cat) => (
                             <div
                                 key={cat.id}
-                                className="bg-white border border-zinc-200 rounded-2xl p-6 hover:border-zinc-300 transition-all shadow-sm"
+                                className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-6 hover:border-zinc-300 transition-all shadow-sm"
                             >
-                                <div className="flex items-center gap-4">
-                                    {/* Type icon */}
-                                    <div className={`p-3 rounded-xl ${(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD") ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
-                                        }`}>
-                                        {(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD")
-                                            ? <Calculator className="w-5 h-5" />
-                                            : <Code2 className="w-5 h-5" />
-                                        }
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    {/* Type icon & Title Mobile Row */}
+                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                        <div className={`p-3 rounded-xl shrink-0 ${(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD") ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                                            }`}>
+                                            {(cat.type === "MATH" || cat.type === "CBSE" || cat.type === "ICSE" || cat.type === "JAC_BOARD")
+                                                ? <Calculator className="w-5 h-5" />
+                                                : <Code2 className="w-5 h-5" />
+                                            }
+                                        </div>
+                                        <div className="sm:hidden flex-1 min-w-0">
+                                            <h3 className="font-bold text-lg leading-tight truncate">{cat.title}</h3>
+                                            <div className="flex gap-2 mt-1">
+                                                <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${cat.isPublished
+                                                    ? "bg-green-50 text-green-600 border border-green-200"
+                                                    : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                                                    }`}>
+                                                    {cat.isPublished ? "Published" : "Draft"}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-1">
+                                    {/* Info - Desktop Title & Metadata */}
+                                    <div className="flex-1 min-w-0 w-full">
+                                        <div className="hidden sm:flex items-center gap-3 mb-1">
                                             <h3 className="font-bold text-lg leading-tight">{cat.title}</h3>
                                             <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${cat.isPublished
                                                 ? "bg-green-50 text-green-600 border border-green-200"
@@ -77,8 +90,8 @@ export default async function AdminChallengesPage() {
                                                 {cat.type}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm text-zinc-500">
-                                            <span>{cat._count.challenges} problems</span>
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-500">
+                                            <span className="font-bold text-zinc-700">{cat._count.challenges} problems</span>
                                             <span className="flex items-center gap-0.5">
                                                 {Array.from({ length: 5 }).map((_, i) => (
                                                     <Star
@@ -87,55 +100,57 @@ export default async function AdminChallengesPage() {
                                                     />
                                                 ))}
                                             </span>
-                                            <span className="font-mono text-xs text-zinc-400">{cat.language}</span>
-                                            {cat.classLevel && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 rounded-md">{cat.classLevel}</span>}
-                                            {cat.subCategory && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 rounded-md">{cat.subCategory}</span>}
+                                            <span className="font-mono text-xs text-zinc-400 border-l border-zinc-200 pl-4 h-4 flex items-center">{cat.language}</span>
+                                            {cat.classLevel && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">{cat.classLevel}</span>}
+                                            {cat.subCategory && <span className="text-xs text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">{cat.subCategory}</span>}
                                         </div>
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2 shrink-0">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-zinc-100 mt-2 sm:mt-0 justify-end shrink-0">
                                         <Link
                                             href={`/admin/challenges/${cat.id}`}
-                                            className="flex items-center gap-1.5 text-sm font-bold text-zinc-600 border border-zinc-200 px-3 py-2 rounded-xl hover:bg-zinc-50 transition-all"
+                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs font-bold text-zinc-600 border border-zinc-200 px-3 py-2.5 rounded-xl hover:bg-zinc-50 transition-all"
                                         >
                                             <BookOpen className="w-3.5 h-3.5" /> Problems
                                             <ChevronRight className="w-3.5 h-3.5" />
                                         </Link>
 
-                                        <form action={async () => {
-                                            "use server";
-                                            await toggleCategoryPublished(cat.id, cat.isPublished);
-                                        }}>
-                                            <button
-                                                type="submit"
-                                                className="p-2 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-500 transition-all"
-                                                title={cat.isPublished ? "Unpublish" : "Publish"}
-                                            >
-                                                {cat.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </button>
-                                        </form>
+                                        <div className="flex items-center gap-2">
+                                            <form action={async () => {
+                                                "use server";
+                                                await toggleCategoryPublished(cat.id, cat.isPublished);
+                                            }}>
+                                                <button
+                                                    type="submit"
+                                                    className="p-2.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-500 transition-all"
+                                                    title={cat.isPublished ? "Unpublish" : "Publish"}
+                                                >
+                                                    {cat.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </form>
 
-                                        <Link
-                                            href={`/admin/challenges/${cat.id}/edit`}
-                                            className="p-2 rounded-xl border border-zinc-200 hover:bg-blue-50 hover:border-blue-200 text-zinc-500 hover:text-blue-600 transition-all"
-                                            title="Edit"
-                                        >
-                                            <Code2 className="w-4 h-4" />
-                                        </Link>
-
-                                        <form action={async () => {
-                                            "use server";
-                                            await deleteChallengeCategory(cat.id);
-                                        }}>
-                                            <button
-                                                type="submit"
-                                                className="p-2 rounded-xl border border-zinc-200 hover:bg-red-50 hover:border-red-200 text-zinc-400 hover:text-red-600 transition-all"
-                                                title="Delete"
+                                            <Link
+                                                href={`/admin/challenges/${cat.id}/edit`}
+                                                className="p-2.5 rounded-xl border border-zinc-200 hover:bg-blue-50 hover:border-blue-200 text-zinc-500 hover:text-blue-600 transition-all"
+                                                title="Edit"
                                             >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </form>
+                                                <Code2 className="w-4 h-4" />
+                                            </Link>
+
+                                            <form action={async () => {
+                                                "use server";
+                                                await deleteChallengeCategory(cat.id);
+                                            }}>
+                                                <button
+                                                    type="submit"
+                                                    className="p-2.5 rounded-xl border border-zinc-200 hover:bg-red-50 hover:border-red-200 text-zinc-400 hover:text-red-600 transition-all"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

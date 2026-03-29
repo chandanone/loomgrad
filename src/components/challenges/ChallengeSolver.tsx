@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -95,28 +95,41 @@ export function ChallengeSolver({
     const outputRef = useRef<HTMLDivElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // ─── State Initialization ─────────────────────────────────────────────
     const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
-    
-    const [markedForReview, setMarkedForReview] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`review_${categorySlug}`);
-        return new Set<string>(saved ? JSON.parse(saved) : []);
-    });
+    const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
+    const [visited, setVisited] = useState<Set<string>>(new Set());
+    const [localAnswered, setLocalAnswered] = useState<Set<string>>(new Set());
 
-    const [visited, setVisited] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`visited_${categorySlug}`);
-        const set = new Set<string>(saved ? JSON.parse(saved) : []);
-        set.add(id); // Ensure current is always visited
-        return set;
-    });
+    const challengesMap = useRef<Map<string, any>>(new Map());
+    useEffect(() => {
+        challengesMap.current = new Map(allChallenges.map(c => [c.id, c]));
+    }, [allChallenges]);
 
-    const [localAnswered, setLocalAnswered] = useState<Set<string>>(() => {
-        if (typeof window === "undefined") return new Set();
-        const saved = localStorage.getItem(`session_answered_${categorySlug}`);
-        return new Set<string>(saved ? JSON.parse(saved) : []);
-    });
+    // Initialize state from localStorage after mount
+    useEffect(() => {
+        if (!isMounted) return;
+        
+        const reviewData = localStorage.getItem(`review_${categorySlug}`);
+        if (reviewData) setMarkedForReview(new Set(JSON.parse(reviewData)));
+
+        const visitedData = localStorage.getItem(`visited_${categorySlug}`);
+        if (visitedData) {
+            const set = new Set<string>(JSON.parse(visitedData));
+            set.add(id);
+            setVisited(set);
+        } else {
+            setVisited(new Set([id]));
+        }
+
+        const answeredData = localStorage.getItem(`session_answered_${categorySlug}`);
+        if (answeredData) setLocalAnswered(new Set(JSON.parse(answeredData)));
+    }, [isMounted, categorySlug, id]);
 
     // Save visited immediately on mount/id change
     useEffect(() => {
@@ -129,21 +142,38 @@ export function ChallengeSolver({
     }, [id]);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
+        if (isMounted) {
             localStorage.setItem(`visited_${categorySlug}`, JSON.stringify(Array.from(visited)));
         }
-    }, [visited, categorySlug]);
+    }, [visited, categorySlug, isMounted]);
 
     useEffect(() => {
-        localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
-    }, [markedForReview, categorySlug]);
+        if (isMounted) {
+            localStorage.setItem(`review_${categorySlug}`, JSON.stringify(Array.from(markedForReview)));
+        }
+    }, [markedForReview, categorySlug, isMounted]);
 
     useEffect(() => {
-        localStorage.setItem(`session_answered_${categorySlug}`, JSON.stringify(Array.from(localAnswered)));
-    }, [localAnswered, categorySlug]);
+        if (isMounted) {
+            localStorage.setItem(`session_answered_${categorySlug}`, JSON.stringify(Array.from(localAnswered)));
+        }
+    }, [localAnswered, categorySlug, isMounted]);
 
     // Fill Blank State: Always start empty
     const [fillAnswer, setFillAnswer] = useState("");
+    const [timeTakenDisplay, setTimeTakenDisplay] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isReview && isMounted) {
+            const savedTime = localStorage.getItem(`time_taken_${categorySlug}`);
+            if (savedTime) {
+                const seconds = parseInt(savedTime);
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                setTimeTakenDisplay(`${m}m ${s}s`);
+            }
+        }
+    }, [isReview, isMounted, categorySlug]);
 
     useEffect(() => {
         if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
@@ -359,15 +389,18 @@ export function ChallengeSolver({
             return next;
         });
 
-        // Save result to server
-        await submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, pCount, tCount);
-        router.refresh();
+        // Save result to server in background and initiate navigation
+        const submissionPromise = submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, pCount, tCount);
 
         // Auto-navigate to next if exists and allowed
         if (navigate && nextChallengeUrl) {
             startTransition(() => {
                 router.push(getNavUrl(nextChallengeUrl));
             });
+        } else {
+            // Only await and refresh if we stay on the same page
+            await submissionPromise;
+            router.refresh();
         }
     };
 
@@ -379,6 +412,11 @@ export function ChallengeSolver({
         }
 
         const proceed = () => {
+            const startTime = localStorage.getItem(`start_time_${categorySlug}`);
+            if (startTime) {
+                const spentSeconds = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+                localStorage.setItem(`time_taken_${categorySlug}`, spentSeconds.toString());
+            }
             router.push(`/challenges/${categorySlug}/result`);
         };
 
@@ -502,11 +540,13 @@ export function ChallengeSolver({
                 localStorage.setItem(`session_answered_${categorySlug}`, JSON.stringify(Array.from(n)));
                 return n; 
             });
-            await submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, pCount, tCount);
-            router.refresh();
+            // Background the server call
+            submitChallengeResult(id, passed ? "PASSED" : "FAILED", submittedCode, pCount, tCount).then(() => {
+                if (!nextChallengeUrl) router.refresh();
+            });
         }
 
-        // Navigate to next question
+        // Navigate to next question immediately
         if (nextChallengeUrl) {
             startTransition(() => router.push(getNavUrl(nextChallengeUrl)));
         }
@@ -537,19 +577,47 @@ export function ChallengeSolver({
 
     // ─── Unified palette status helper ───────────────────────────────────────
     type PaletteStatus = "not-visited" | "not-answered" | "answered" | "marked" | "answered-marked";
-    const getPaletteStatus = (challengeId: string): PaletteStatus => {
-        const effectiveAnswered = isReattempt
-            ? localAnswered.has(challengeId)
-            : (allChallenges.find(c => c.id === challengeId)?.isAnswered || localAnswered.has(challengeId));
-        const isMarked = markedForReview.has(challengeId);
-        const isVisited = visited.has(challengeId);
+    
+    // Memoize the entire status palette for the session to avoid O(N^2) lookups on every render
+    const paletteStatuses = useMemo(() => {
+        if (!isMounted) return new Map<string, PaletteStatus>();
+        
+        const statusMap = new Map<string, PaletteStatus>();
+        allChallenges.forEach(ch => {
+            const effectiveAnswered = isReattempt
+                ? localAnswered.has(ch.id)
+                : (ch.isAnswered || localAnswered.has(ch.id));
+            const isMarked = markedForReview.has(ch.id);
+            const isVisited = visited.has(ch.id);
 
-        if (effectiveAnswered && isMarked) return "answered-marked";
-        if (isMarked) return "marked";
-        if (effectiveAnswered) return "answered";
-        if (isVisited) return "not-answered";
-        return "not-visited";
+            let status: PaletteStatus = "not-visited";
+            if (effectiveAnswered && isMarked) status = "answered-marked";
+            else if (isMarked) status = "marked";
+            else if (effectiveAnswered) status = "answered";
+            else if (isVisited) status = "not-answered";
+            
+            statusMap.set(ch.id, status);
+        });
+        return statusMap;
+    }, [allChallenges, localAnswered, markedForReview, visited, isMounted, isReattempt]);
+
+    const getPaletteStatus = (challengeId: string): PaletteStatus => {
+        if (!isMounted) return challengeId === id ? "not-answered" : "not-visited";
+        return paletteStatuses.get(challengeId) || "not-visited";
     };
+
+    // Memoize counts for the legend
+    const statusCounts = useMemo(() => {
+        const counts = { answered: 0, notAnswered: 0, notVisited: 0, marked: 0, answeredMarked: 0 };
+        paletteStatuses.forEach((status: PaletteStatus) => {
+            if (status === "answered") counts.answered++;
+            else if (status === "not-answered") counts.notAnswered++;
+            else if (status === "not-visited") counts.notVisited++;
+            else if (status === "marked") counts.marked++;
+            else if (status === "answered-marked") counts.answeredMarked++;
+        });
+        return counts;
+    }, [paletteStatuses]);
 
     const paletteClasses = (status: PaletteStatus, isCurrent: boolean, size: "sm" | "lg" = "lg") => {
         const base = size === "lg" ? "w-10 h-10 text-xs" : "min-w-[38px] h-8.5 text-xs";
@@ -660,20 +728,29 @@ export function ChallengeSolver({
             {/* Mobile Timer Bar */}
             <div className="md:hidden bg-[#4b77be] text-white px-4 py-0.5 flex items-center justify-end font-bold text-xs shrink-0">
                 <div className="flex items-center gap-2 bg-[#1a2d4c] px-3 py-1 rounded">
-                    <span className="text-[10px] text-zinc-300">Time Left :</span>
-                    {(assessmentMode === "EXAM" || initialTimerLevel) && (
-                        <QuizTimer 
-                            categorySlug={categorySlug} 
-                            initialTimerLevel={initialTimerLevel} 
-                            isPaused={isReview}
-                            onTimeUp={() => {
-                                toast.error("Time is up! Your exam will be submitted automatically.", {
-                                    duration: 5000,
-                                    position: "top-center"
-                                });
-                                handleSubmitExam(true);
-                            }}
-                        />
+                    {!isReview ? (
+                        <>
+                            <span className="text-[10px] text-zinc-300">Time Left :</span>
+                            {(assessmentMode === "EXAM" || initialTimerLevel) && (
+                                <QuizTimer 
+                                    categorySlug={categorySlug} 
+                                    initialTimerLevel={initialTimerLevel} 
+                                    isPaused={isReview}
+                                    onTimeUp={() => {
+                                        toast.error("Time is up! Your exam will be submitted automatically.", {
+                                            duration: 5000,
+                                            position: "top-center"
+                                        });
+                                        handleSubmitExam(true);
+                                    }}
+                                />
+                            )}
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-blue-300 font-bold uppercase tracking-wider leading-none">Review Mode</span>
+                            {timeTakenDisplay && <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter">Time Taken: {timeTakenDisplay}</span>}
+                        </div>
                     )}
                 </div>
             </div>
@@ -711,22 +788,32 @@ export function ChallengeSolver({
                             </button>
                         </div>
                         <div className="flex items-center gap-4 text-sm font-bold text-zinc-700">
-                            <div className="flex items-center gap-2">
-                                <Timer className="w-4 h-4 text-zinc-400" />
-                                <span>Time Left: </span>
-                                <QuizTimer 
-                                    categorySlug={categorySlug} 
-                                    initialTimerLevel={initialTimerLevel} 
-                                    isPaused={isReview}
-                                    onTimeUp={() => {
-                                        toast.error("Time is up! Your exam will be submitted automatically.", {
-                                            duration: 5000,
-                                            position: "top-center"
-                                        });
-                                        handleSubmitExam(true);
-                                    }}
-                                />
-                            </div>
+                            {!isReview ? (
+                                <div className="flex items-center gap-2">
+                                    <Timer className="w-4 h-4 text-zinc-400" />
+                                    <span>Time Left: </span>
+                                    <QuizTimer 
+                                        categorySlug={categorySlug} 
+                                        initialTimerLevel={initialTimerLevel} 
+                                        isPaused={isReview}
+                                        onTimeUp={() => {
+                                            toast.error("Time is up! Your exam will be submitted automatically.", {
+                                                duration: 5000,
+                                                position: "top-center"
+                                            });
+                                            handleSubmitExam(true);
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 text-[#007ba1]">
+                                    <Info className="w-4 h-4" />
+                                    <div className="flex flex-col">
+                                        <span className="leading-none">Review Mode</span>
+                                        {timeTakenDisplay && <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Total Time Taken: {timeTakenDisplay}</span>}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -764,6 +851,10 @@ export function ChallengeSolver({
                                         <div className="space-y-1.5 md:space-y-4">
                                             {options.map((opt, i) => {
                                                 const isSelected = selectedOptions.has(opt.id);
+                                                const isCorrect = opt.isCorrect;
+                                                const showCorrect = isReview && isCorrect;
+                                                const showIncorrect = isReview && isSelected && !isCorrect;
+
                                                 return (
                                                     <button
                                                         key={opt.id}
@@ -780,17 +871,52 @@ export function ChallengeSolver({
                                                             setSelectedOptions(next);
                                                         }}
                                                         disabled={isReview}
-                                                        className={`w-full py-2 px-3 md:p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${isSelected
-                                                            ? "bg-blue-50 border-blue-500 shadow-sm"
-                                                            : isReview 
-                                                                ? "bg-zinc-50 border-zinc-100 cursor-default opacity-80"
-                                                                : "bg-white border-zinc-100 hover:border-blue-200 hover:bg-zinc-50"
-                                                            }`}
+                                                        className={`w-full py-2 px-3 md:p-4 rounded-xl border-2 transition-all text-left flex items-center justify-between group ${
+                                                            showCorrect 
+                                                                ? "bg-green-50 border-green-500 shadow-sm" 
+                                                                : showIncorrect 
+                                                                    ? "bg-red-50 border-red-500 shadow-sm" 
+                                                                    : isSelected
+                                                                        ? "bg-blue-50 border-blue-500 shadow-sm"
+                                                                        : isReview 
+                                                                            ? "bg-zinc-50 border-zinc-100 cursor-default opacity-80"
+                                                                            : "bg-white border-zinc-100 hover:border-blue-200 hover:bg-zinc-50"
+                                                        }`}
                                                     >
-                                                        <div className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "border-blue-600" : "border-zinc-400"}`}>
-                                                            {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                                                showCorrect 
+                                                                    ? "border-green-600" 
+                                                                    : showIncorrect 
+                                                                        ? "border-red-600" 
+                                                                        : isSelected 
+                                                                            ? "border-blue-600" 
+                                                                            : "border-zinc-400"
+                                                            }`}>
+                                                                {(isSelected || showCorrect) && (
+                                                                    <div className={`w-2 h-2 rounded-full ${
+                                                                        showCorrect ? "bg-green-600" : showIncorrect ? "bg-red-600" : "bg-blue-600"
+                                                                    }`} />
+                                                                )}
+                                                            </div>
+                                                            <span className={`text-sm font-medium ${
+                                                                showCorrect ? "text-green-900" : showIncorrect ? "text-red-900" : "text-zinc-800"
+                                                            }`}>{opt.text}</span>
                                                         </div>
-                                                        <span className="text-zinc-800 text-sm font-medium">{opt.text}</span>
+                                                        {isReview && (
+                                                            <div className="flex items-center gap-2">
+                                                                {showCorrect && (
+                                                                    <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                                        <CheckCircle2 className="w-3 h-3" /> Correct
+                                                                    </div>
+                                                                )}
+                                                                {showIncorrect && (
+                                                                    <div className="flex items-center gap-1.5 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                                        <XCircle className="w-3 h-3" /> Your Answer
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </button>
                                                 );
                                             })}
@@ -799,13 +925,29 @@ export function ChallengeSolver({
 
                                     {/* Fill in the Blank Input */}
                                     {questionType === "FILL_BLANK" && (
-                                        <textarea
-                                            value={fillAnswer}
-                                            onChange={(e) => setFillAnswer(e.target.value)}
-                                            readOnly={isReview}
-                                            placeholder={isReview ? "No answer provided" : "Type your answer here..."}
-                                            className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
-                                        />
+                                        <div className="space-y-4">
+                                            <textarea
+                                                value={fillAnswer}
+                                                onChange={(e) => setFillAnswer(e.target.value)}
+                                                readOnly={isReview}
+                                                placeholder={isReview ? "No answer provided" : "Type your answer here..."}
+                                                className={`w-full p-4 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none border ${
+                                                    isReview 
+                                                        ? fillAnswer.trim().toLowerCase() === (correctAnswer || "").trim().toLowerCase()
+                                                            ? "bg-green-50 border-green-500 text-green-900"
+                                                            : "bg-red-50 border-red-500 text-red-900"
+                                                        : "bg-zinc-50 border-zinc-200 focus:bg-white"
+                                                }`}
+                                            />
+                                            {isReview && fillAnswer.trim().toLowerCase() !== (correctAnswer || "").trim().toLowerCase() && (
+                                                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                                                    <div className="flex items-center gap-2 text-green-700 text-xs font-bold uppercase tracking-wider mb-1">
+                                                        <CheckCircle2 className="w-3.5 h-3.5" /> Correct Answer
+                                                    </div>
+                                                    <div className="text-green-900 font-bold">{correctAnswer}</div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* Coding Editor (if needed) */}
@@ -880,54 +1022,69 @@ export function ChallengeSolver({
                         </div>
                     </div>
 
-                    {/* Mobile Footer Action Bar */}
-                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-2 md:p-3 flex flex-col gap-1.5 shrink-0">
-                        {!isReview && (
-                            <div className="flex gap-2">
+                    {/* Mobile Footer Action Bar — matches reference image layout */}
+                    <div className="md:hidden border-t border-zinc-300 bg-[#f0f0f0] p-2 flex flex-col gap-2 shrink-0">
+                        {/* Row 1: Clear Response | Previous | Mark for Review & Next */}
+                        <div className="flex gap-1.5">
+                            {!isReview && (
                                 <button
                                     onClick={handleClearResponse}
-                                    className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
                                 >
                                     Clear Response
                                 </button>
-                                <button
-                                    onClick={handleMarkForReviewAndNext}
-                                    className="flex-1 py-2 bg-white border border-zinc-300 text-zinc-700 text-xs font-bold rounded shadow-sm"
-                                >
-                                    Mark for Review & Next
-                                </button>
-                            </div>
-                        )}
-                        <div className="flex gap-2">
-                            {/* Navigation Buttons */}
-                            {prevChallengeUrl && (
+                            )}
+                            {/* Previous: always rendered from Q2+, greyed out otherwise */}
+                            {prevChallengeUrl ? (
                                 <Link
                                     href={getNavUrl(prevChallengeUrl)}
-                                    className="flex-1 py-3 bg-white border border-zinc-300 text-zinc-700 text-sm font-bold rounded shadow-sm text-center"
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-500 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
                                 >
                                     Previous
                                 </Link>
+                            ) : (
+                                <button
+                                    disabled
+                                    className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-300 text-[11px] font-bold rounded shadow-sm cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
                             )}
-
                             {!isReview && (
-                                <>
-                                    <button
-                                        onClick={handleSubmitQuiz}
-                                        className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner"
-                                    >
-                                        Save & Next
-                                    </button>
-                                </>
+                                <button
+                                    onClick={handleMarkForReviewAndNext}
+                                    className="flex-1 py-2.5 bg-white border border-zinc-300 text-zinc-700 text-[11px] font-bold rounded shadow-sm text-center active:bg-zinc-100"
+                                >
+                                    Mark for Review & Next
+                                </button>
                             )}
                             {isReview && nextChallengeUrl && (
                                 <Link
                                     href={getNavUrl(nextChallengeUrl)}
-                                    className="flex-1 py-3 bg-[#007ba1] text-white text-sm font-bold rounded shadow-inner text-center"
+                                    className="flex-1 py-2.5 bg-[#007ba1] text-white text-[11px] font-bold rounded shadow-sm text-center active:opacity-90"
                                 >
                                     Next Question
                                 </Link>
                             )}
                         </div>
+
+                        {/* Row 2: Submit | Save & Next */}
+                        {!isReview && (
+                            <div className="flex gap-1.5">
+                                <button
+                                    onClick={() => handleSubmitExam(false)}
+                                    className="flex-1 py-3 bg-[#5bc0de] hover:bg-[#31b0d5] text-white text-sm font-bold rounded shadow-sm active:opacity-90"
+                                >
+                                    Submit
+                                </button>
+                                <button
+                                    onClick={handleSubmitQuiz}
+                                    className="flex-1 py-3 bg-[#44a024] hover:bg-[#3d8c20] text-white text-sm font-bold rounded shadow-inner active:opacity-90"
+                                >
+                                    Save & Next
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Desktop Bottom Action Bar */}
@@ -1002,44 +1159,31 @@ export function ChallengeSolver({
 
                     {/* Status Legend */}
                     <div className="p-4 border-b border-zinc-200">
-                        {(() => {
-                            const counts = { answered: 0, notAnswered: 0, notVisited: 0, marked: 0, answeredMarked: 0 };
-                            allChallenges.forEach(c => {
-                                const s = getPaletteStatus(c.id);
-                                if (s === "answered") counts.answered++;
-                                else if (s === "not-answered") counts.notAnswered++;
-                                else if (s === "not-visited") counts.notVisited++;
-                                else if (s === "marked") counts.marked++;
-                                else if (s === "answered-marked") counts.answeredMarked++;
-                            });
-                            return (
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">{counts.answered}</div>
-                                        <span className="text-zinc-600">Answered</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">{counts.notAnswered}</div>
-                                        <span className="text-zinc-600">Not Answered</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">{counts.notVisited}</div>
-                                        <span className="text-zinc-600">Not Visited</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">{counts.marked}</div>
-                                        <span className="text-zinc-600">Marked for Review</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 col-span-2">
-                                        <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
-                                            {counts.answeredMarked}
-                                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
-                                        </div>
-                                        <span className="text-zinc-600">Answered &amp; Marked for Review</span>
-                                    </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">{statusCounts.answered}</div>
+                                <span className="text-zinc-600">Answered</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">{statusCounts.notAnswered}</div>
+                                <span className="text-zinc-600">Not Answered</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">{statusCounts.notVisited}</div>
+                                <span className="text-zinc-600">Not Visited</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">{statusCounts.marked}</div>
+                                <span className="text-zinc-600">Marked for Review</span>
+                            </div>
+                            <div className="flex items-center gap-2 col-span-2">
+                                <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                    {statusCounts.answeredMarked}
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
                                 </div>
-                            );
-                        })()}
+                                <span className="text-zinc-600">Answered &amp; Marked for Review</span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Question Palette Section */}
@@ -1083,7 +1227,7 @@ export function ChallengeSolver({
                     )}
                 </div>
             </div>
-            {/* Mobile Sidebar/Drawer Backdrop */}
+
             {showMobileMenu && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-[100] md:hidden"
@@ -1120,44 +1264,31 @@ export function ChallengeSolver({
 
                         {/* Status Legend */}
                         <div className="p-4 border-b border-zinc-200">
-                            {(() => {
-                                const counts = { answered: 0, notAnswered: 0, notVisited: 0, marked: 0, answeredMarked: 0 };
-                                allChallenges.forEach(c => {
-                                    const s = getPaletteStatus(c.id);
-                                    if (s === "answered") counts.answered++;
-                                    else if (s === "not-answered") counts.notAnswered++;
-                                    else if (s === "not-visited") counts.notVisited++;
-                                    else if (s === "marked") counts.marked++;
-                                    else if (s === "answered-marked") counts.answeredMarked++;
-                                });
-                                return (
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">{counts.answered}</div>
-                                            <span className="text-zinc-600">Answered</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">{counts.notAnswered}</div>
-                                            <span className="text-zinc-600">Not Answered</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">{counts.notVisited}</div>
-                                            <span className="text-zinc-600">Not Visited</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">{counts.marked}</div>
-                                            <span className="text-zinc-600">Marked for Review</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 col-span-2">
-                                            <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
-                                                {counts.answeredMarked}
-                                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
-                                            </div>
-                                            <span className="text-zinc-600">Answered &amp; Marked for Review</span>
-                                        </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-bold">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#44a024] text-white flex items-center justify-center rounded-tl-xl rounded-br-xl">{statusCounts.answered}</div>
+                                    <span className="text-zinc-600">Answered</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#ee4b2b] text-white flex items-center justify-center rounded-tr-xl rounded-bl-xl">{statusCounts.notAnswered}</div>
+                                    <span className="text-zinc-600">Not Answered</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#e5e7eb] text-zinc-600 flex items-center justify-center">{statusCounts.notVisited}</div>
+                                    <span className="text-zinc-600">Not Visited</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">{statusCounts.marked}</div>
+                                    <span className="text-zinc-600">Marked for Review</span>
+                                </div>
+                                <div className="flex items-center gap-2 col-span-2">
+                                    <div className="relative w-6 h-6 bg-[#6a5acd] text-white flex items-center justify-center rounded-full">
+                                        {statusCounts.answeredMarked}
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border border-white rounded-sm" />
                                     </div>
-                                );
-                            })()}
+                                    <span className="text-zinc-600">Answered &amp; Marked for Review</span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Question Palette Section */}
@@ -1182,17 +1313,6 @@ export function ChallengeSolver({
                                 })}
                             </div>
                         </div>
-
-                        {!isReview && (
-                            <div className="p-4 bg-zinc-50 border-t border-zinc-200 mt-auto shrink-0">
-                                <button 
-                                    onClick={() => handleSubmitExam(false)}
-                                    className="w-full bg-[#5bc0de] text-white font-bold py-3 rounded shadow-sm text-sm"
-                                >
-                                    Final Submit
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

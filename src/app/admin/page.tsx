@@ -66,98 +66,112 @@ export default async function AdminDashboard() {
     });
 
     return (
-        <div className="min-h-screen bg-white text-zinc-900 p-8">
+        <div className="min-h-screen bg-white text-zinc-900 p-4 sm:p-8">
             <div className="max-w-6xl mx-auto">
-                <div className="mb-10">
-                    <h1 className="text-4xl font-bold tracking-tight mb-2">Admin Dashboard</h1>
-                    <p className="text-zinc-500">Welcome back. Here's a quick overview of your platform performance.</p>
+                <div className="mb-6 sm:mb-10">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Admin Dashboard</h1>
+                    <p className="text-zinc-500 text-sm">Welcome back. Here's a quick overview of your platform.</p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8 sm:mb-12">
                     {items.map((item, i) => (
-                        <div key={i} className="bg-zinc-50 border border-zinc-200 rounded-2xl p-6 hover:border-zinc-300 transition-all">
-                            <div className={`${item.bg} ${item.color} w-12 h-12 rounded-xl flex items-center justify-center mb-4`}>
-                                <item.icon className="w-6 h-6" />
+                        <div key={i} className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4 sm:p-6 hover:border-zinc-300 transition-all flex flex-col sm:block items-center text-center sm:text-left">
+                            <div className={`${item.bg} ${item.color} w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4`}>
+                                <item.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
-                            <p className="text-zinc-500 text-sm font-medium mb-1">{item.label}</p>
-                            <h3 className="text-3xl font-bold">{item.value}</h3>
+                            <div>
+                                <p className="text-zinc-500 text-[10px] sm:text-sm font-medium mb-0.5 sm:mb-1">{item.label}</p>
+                                <h3 className="text-xl sm:text-3xl font-bold tracking-tight">{item.value}</h3>
+                            </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                    {/* Quick Actions */}
-                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col items-start gap-6 group hover:border-blue-500/30 transition-all h-full shadow-sm hover:shadow-md">
-                            <div className="bg-blue-50 p-4 rounded-2xl">
-                                <TrendingUp className="w-8 h-8 text-blue-600" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
+                    {/* Quick Actions Container */}
+                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        {/* Create Course */}
+                        <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 flex flex-col items-start gap-4 sm:gap-6 group hover:border-blue-500/30 transition-all h-full shadow-sm hover:shadow-md">
+                            <div className="bg-blue-50 p-3 sm:p-4 rounded-2xl">
+                                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold mb-2">Create Course</h3>
-                                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                                    Import entire YouTube playlists and turn them into structured courses with one click.
+                            <div className="flex-1 flex flex-col">
+                                <h3 className="text-xl sm:text-2xl font-bold mb-2">Create Course</h3>
+                                <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6">
+                                    Import YouTube playlists and turn them into structured courses.
                                 </p>
-                                <Link
-                                    href="/admin/import"
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
-                                >
-                                    Open Playlist Importer <ArrowRight className="w-4 h-4" />
-                                </Link>
+                                <div className="mt-auto">
+                                    <Link
+                                        href="/admin/import"
+                                        className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold transition-all text-xs sm:text-sm"
+                                    >
+                                        Open Importer <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col items-start gap-6 group hover:border-purple-500/30 transition-all h-full shadow-sm hover:shadow-md">
-                            <div className="bg-purple-50 p-4 rounded-2xl">
-                                <Clock className="w-8 h-8 text-purple-600" />
+                        {/* Course Management */}
+                        <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 flex flex-col items-start gap-4 sm:gap-6 group hover:border-purple-500/30 transition-all h-full shadow-sm hover:shadow-md">
+                            <div className="bg-purple-50 p-3 sm:p-4 rounded-2xl">
+                                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold mb-2">Course Management</h3>
-                                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                                    Manage your catalog, publish drafts, update visibility, or prune old content.
+                            <div className="flex-1 flex flex-col">
+                                <h3 className="text-xl sm:text-2xl font-bold mb-2">Management</h3>
+                                <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6">
+                                    Manage your catalog, publish drafts, or prune old content.
                                 </p>
-                                <Link
-                                    href="/admin/courses"
-                                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
-                                >
-                                    Manage Catalog <ArrowRight className="w-4 h-4" />
-                                </Link>
+                                <div className="mt-auto">
+                                    <Link
+                                        href="/admin/courses"
+                                        className="flex items-center justify-center sm:justify-start gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold transition-all text-xs sm:text-sm"
+                                    >
+                                        Manage Catalog <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col items-start gap-6 group hover:border-green-500/30 transition-all h-full shadow-sm hover:shadow-md">
-                            <div className="bg-green-50 p-4 rounded-2xl">
-                                <ShieldCheck className="w-8 h-8 text-green-600" />
+                        {/* Access Control */}
+                        <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 flex flex-col items-start gap-4 sm:gap-6 group hover:border-green-500/30 transition-all h-full shadow-sm hover:shadow-md">
+                            <div className="bg-green-50 p-3 sm:p-4 rounded-2xl">
+                                <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold mb-2">Access Control</h3>
-                                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                                    Manually grant temporary access to specific courses for students without subscriptions.
+                            <div className="flex-1 flex flex-col">
+                                <h3 className="text-xl sm:text-2xl font-bold mb-2">Access Control</h3>
+                                <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6">
+                                    Manually grant temporary access to specific courses for students.
                                 </p>
-                                <Link
-                                    href="/admin/access"
-                                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
-                                >
-                                    Manage Access <ArrowRight className="w-4 h-4" />
-                                </Link>
+                                <div className="mt-auto">
+                                    <Link
+                                        href="/admin/access"
+                                        className="flex items-center justify-center sm:justify-start gap-2 bg-green-600 hover:bg-green-700 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold transition-all text-xs sm:text-sm"
+                                    >
+                                        Manage Access <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-white border border-zinc-200 rounded-3xl p-8 flex flex-col items-start gap-6 group hover:border-blue-500/30 transition-all h-full shadow-sm hover:shadow-md">
-                            <div className="bg-blue-50 p-4 rounded-2xl">
-                                <Code2 className="w-8 h-8 text-blue-600" />
+                        {/* Challenge Manager */}
+                        <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 flex flex-col items-start gap-4 sm:gap-6 group hover:border-blue-500/30 transition-all h-full shadow-sm hover:shadow-md">
+                            <div className="bg-blue-50 p-3 sm:p-4 rounded-2xl">
+                                <Code2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold mb-2">Challenge Manager</h3>
-                                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                                    Create standalone coding & math challenges. Add categories, problems, and test cases.
+                            <div className="flex-1 flex flex-col">
+                                <h3 className="text-xl sm:text-2xl font-bold mb-2">Challenges</h3>
+                                <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6">
+                                    Create and manage standalone coding & math tasks.
                                 </p>
-                                <Link
-                                    href="/admin/challenges"
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all"
-                                >
-                                    Manage Challenges <ArrowRight className="w-4 h-4" />
-                                </Link>
+                                <div className="mt-auto">
+                                    <Link
+                                        href="/admin/challenges"
+                                        className="flex items-center justify-center sm:justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold transition-all text-xs sm:text-sm"
+                                    >
+                                        Manage tasks <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
