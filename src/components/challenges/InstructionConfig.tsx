@@ -86,6 +86,8 @@ export function InstructionConfig({
                             localStorage.removeItem(`visited_${categorySlug}`);
                             localStorage.removeItem(`review_${categorySlug}`);
                             localStorage.removeItem(`session_answered_${categorySlug}`);
+                            localStorage.removeItem(`time_taken_${categorySlug}`);
+                            localStorage.setItem(`start_time_${categorySlug}`, Date.now().toString());
                             
                             if (timerLevel !== "None") {
                                 const minutes = timerLevel === "Easy" ? 30 : timerLevel === "Moderate" ? 20 : 10;
