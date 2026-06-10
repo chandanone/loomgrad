@@ -1,36 +1,224 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LoomGrad
 
-## Getting Started
+**Convert YouTube Playlists into Professional Learning Courses**
 
-First, run the development server:
+🌐 Live Demo: https://loomgrad.vercel.app/
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Problem
+
+Millions of learners consume educational content through YouTube playlists, but playlists lack:
+
+* Structured learning paths
+* Progress tracking
+* Assessments and quizzes
+* Access control
+* Monetization capabilities
+
+LoomGrad transforms YouTube playlists into complete learning experiences with course management, assessments, authentication, and payment integration.
+
+---
+
+## Key Features
+
+### 🎥 YouTube Playlist to Course
+
+* Import YouTube playlists
+* Automatically generate course lessons
+* Organize videos into structured learning modules
+* Manage course metadata and content
+
+### 🔐 Authentication
+
+* Google OAuth Login
+* Secure user authentication
+* Session management
+* Protected routes
+
+### 👥 Role-Based Access Control
+
+#### User
+
+* Browse available courses
+* Purchase premium courses
+* Access enrolled courses
+* Attempt quizzes and challenges
+* Track learning progress
+
+#### Admin
+
+* Create and manage courses
+* Configure lessons and curriculum
+* Manage challenge sections
+* Create and publish quizzes
+* Control course visibility and pricing
+
+### 📝 Challenge Section
+
+A dedicated assessment system inspired by competitive exam formats.
+
+Features:
+
+* IBPS-style multiple-choice questions
+* Configurable challenge modules
+* Time-based assessments
+* Multiple difficulty levels
+* Performance evaluation
+* Admin-controlled question banks
+
+### 💳 Razorpay Integration
+
+* Secure payment processing
+* Course purchase workflow
+* Payment verification
+* Automatic enrollment after successful payment
+
+### 📊 Admin Dashboard
+
+* Course management
+* Quiz management
+* User management
+* Enrollment monitoring
+* Revenue tracking
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* Next.js
+* React
+* TypeScript
+* Tailwind CSS
+
+### Backend
+
+* Next.js Server Actions
+* REST APIs
+
+### Database
+
+* Neon PostgreSQL
+
+### ORM
+
+* Prisma ORM
+
+### Authentication
+
+* Google OAuth
+
+### Payments
+
+* Razorpay
+
+### Deployment
+
+* Vercel
+
+---
+
+## Architecture
+
+```text
+User
+ │
+ ▼
+Next.js Frontend
+ │
+ ├── Google OAuth
+ │
+ ├── Course Management
+ │
+ ├── Challenge Engine
+ │
+ └── Razorpay Checkout
+ │
+ ▼
+Server Actions / APIs
+ │
+ ▼
+Prisma ORM
+ │
+ ▼
+Neon PostgreSQL
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Core Modules
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Course Module
 
-## Learn More
+* Create courses from YouTube playlists
+* Manage lessons
+* Publish/unpublish courses
+* Track enrollments
 
-To learn more about Next.js, take a look at the following resources:
+### Challenge Module
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+* Create quizzes
+* Add MCQ questions
+* Configure IBPS-style assessments
+* Set scoring criteria
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Payment Module
 
-## Deploy on Vercel
+* Razorpay checkout
+* Payment verification
+* Enrollment automation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### User Module
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* Google Sign-In
+* Profile management
+* Learning progress
+* Course access control
+
+---
+
+## Environment Variables
+
+```env
+DATABASE_URL=
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+
+YOUTUBE_KEY=
+
+```
+
+---
+
+## Future Roadmap
+
+* AI-generated quiz creation from videos
+* AI-generated course summaries
+* Certificates of completion
+* Leaderboards
+* Subscription plans
+* Learning analytics
+* Multi-admin support
+* Instructor portal
+
+---
+
+## Why LoomGrad?
+
+LoomGrad bridges the gap between free educational content and structured online learning platforms by turning ordinary YouTube playlists into monetizable, assessment-driven courses with authentication, role management, and payment support.
+
+---
+
+## Author
+
+**Chandan**
+
+Built with ❤️ using Next.js, Prisma, Neon PostgreSQL, Razorpay, Youtube, and Google OAuth.
+
