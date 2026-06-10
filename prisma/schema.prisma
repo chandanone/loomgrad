@@ -1,0 +1,350 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STUDENT
+}
+
+enum ChallengeType {
+  CODING
+  MATH
+  CBSE
+  ICSE
+  JAC_BOARD
+}
+
+enum QuestionType {
+  CODING
+  MCQ_SINGLE
+  MCQ_MULTI
+  FILL_BLANK
+}
+
+enum SubscriptionTier {
+  FREE
+  MONTHLY
+  YEARLY
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum SubmissionStatus {
+  PENDING
+  PASSED
+  FAILED
+  ERROR
+}
+
+model User {
+  id                    String           @id @default(cuid())
+  name                  String?
+  email                 String           @unique
+  password              String?
+  image                 String?
+  role                  UserRole         @default(STUDENT)
+  
+  // Subscription
+  isSubscribed          Boolean          @default(false)
+  subscriptionId        String?          @unique
+  subscriptionTier      SubscriptionTier @default(FREE)
+  subscriptionEndsAt    DateTime?
+  
+  // Relations
+  progress              Progress[]
+  codeSubmissions       CodeSubmission[]
+  challengeSubmissions  ChallengeSubmission[]
+  certificates          Certificate[]
+  courseAccess          CourseAccess[]
+  subscriptions         Subscription[]
+  
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([email, role])
+}
+
+model Subscription {
+  id                String           @id @default(cuid())
+  userId            String
+  plan              SubscriptionTier
+  startDate         DateTime         @default(now())
+  endDate           DateTime
+  razorpayPaymentId String?
+  razorpayOrderId   String?
+  status            String           @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+model Course {
+  id                String    @id @default(cuid())
+  title             String
+  slug              String    @unique
+  description       String    @db.Text
+  thumbnail         String?
+  youtubePlaylistId String?   @unique
+  
+  // Metadata
+  category          String?
+  level             CourseLevel @default(BEGINNER)
+  difficultyStars   Int       @default(1)
+  language          String    @default("JavaScript")
+  isPublished       Boolean   @default(false)
+  isChallengeSet    Boolean   @default(false)
+  offerFreeTrial    Boolean   @default(false) // Gives 30 days free access from creation
+  price             Float?    @default(0)
+  duration          String?   // e.g., "10h 30m"
+  hasSandbox        Boolean   @default(true)
+  hasWhiteboard      Boolean   @default(false)
+  
+  // Relations
+  modules           Module[]
+  enrollments       Progress[]
+  courseAccess      CourseAccess[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([slug, isPublished, isChallengeSet])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  orderIndex  Int
+  
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  
+  @@unique([courseId, orderIndex])
+  @@index([courseId])
+}
+
+model Lesson {
+  id              String   @id @default(cuid())
+  moduleId        String
+  title           String
+  slug            String
+  youtubeVideoId  String?
+  duration        Int?     // seconds
+  description     String?  @db.Text
+  notesMarkdown   String?  @db.Text
+  orderIndex      Int
+  isFree          Boolean  @default(false)
+  
+  // Code Challenge
+  hasCodeChallenge Boolean  @default(false)
+  starterCode      String?  @db.Text
+  hint             String?  @db.Text
+  solution         String?  @db.Text
+  
+  module          Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress        Progress[]
+  testCases       TestCase[]
+  submissions     CodeSubmission[]
+  
+  @@unique([moduleId, orderIndex])
+  @@unique([moduleId, slug])
+  @@index([moduleId])
+}
+
+model Progress {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  lessonId    String
+  
+  isCompleted Boolean  @default(false)
+  watchedDuration Int  @default(0) // seconds
+  lastWatchedAt DateTime @default(now())
+  completedAt DateTime?
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, lessonId])
+  @@index([userId, courseId])
+}
+
+model TestCase {
+  id          String   @id @default(cuid())
+  lessonId    String
+  input       String   @db.Text
+  expectedOutput String @db.Text
+  isHidden    Boolean  @default(false) // Hidden test cases for evaluation
+  orderIndex  Int
+  
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([lessonId, orderIndex])
+}
+
+model CodeSubmission {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  code        String   @db.Text
+  language    String
+  status      SubmissionStatus
+  passedTests Int      @default(0)
+  totalTests  Int
+  executionTime Float?  // milliseconds
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, lessonId])
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  certificateUrl String
+  issuedAt    DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+}
+
+model CourseAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  expiresAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId, expiresAt])
+}
+
+// ─────────────────────────────────────────────
+// STANDALONE CHALLENGE SYSTEM (separate from courses)
+// ─────────────────────────────────────────────
+
+model ChallengeCategory {
+  id             String          @id @default(cuid())
+  title          String
+  slug           String          @unique
+  description    String          @db.Text
+  type           ChallengeType   @default(CODING)
+  difficultyStars Int            @default(1)
+  isPublished    Boolean         @default(false)
+  language       String          @default("JavaScript")
+  helpText       String?         @db.Text
+  fullInstruction String?         @db.Text
+  assessmentMode String          @default("PRACTICE")
+  classLevel     String?
+  subCategory    String?
+  orderIndex     Int             @default(0)
+
+  challenges     Challenge[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([slug, isPublished])
+}
+
+model Challenge {
+  id             String            @id @default(cuid())
+  categoryId     String
+  title          String
+  slug           String
+  description    String            @db.Text
+  type           ChallengeType     @default(CODING)
+  questionType   QuestionType      @default(CODING)
+  difficultyStars Int              @default(1)
+  starterCode    String?           @db.Text
+  solution       String?           @db.Text
+  hint           String?           @db.Text
+  correctAnswer  String?           @db.Text  // for FILL_BLANK
+  isPublished    Boolean           @default(true)
+  language       String            @default("JavaScript") // For choosing coding sandbox
+  orderIndex     Int               @default(0)
+
+  category       ChallengeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  testCases      ChallengeTestCase[]
+  options        ChallengeOption[]
+  submissions    ChallengeSubmission[]
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([categoryId, slug])
+  @@unique([categoryId, orderIndex])
+  @@index([categoryId])
+}
+
+model ChallengeOption {
+  id          String    @id @default(cuid())
+  challengeId String
+  text        String    @db.Text
+  isCorrect   Boolean   @default(false)
+  orderIndex  Int
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, orderIndex])
+  @@index([challengeId])
+}
+
+model ChallengeTestCase {
+  id             String    @id @default(cuid())
+  challengeId    String
+  input          String    @db.Text
+  expectedOutput String    @db.Text
+  isHidden       Boolean   @default(false)
+  orderIndex     Int
+
+  challenge      Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, orderIndex])
+}
+
+model ChallengeSubmission {
+  id          String          @id @default(cuid())
+  userId      String
+  challengeId String
+  code        String          @db.Text
+  status      SubmissionStatus
+  passedTests Int             @default(0)
+  totalTests  Int
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge       @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, challengeId])
+}
+
+

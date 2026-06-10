@@ -1,0 +1,132 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { createRazorpayOrder, verifyPayment } from "@/actions/razorpay";
+import { SubscriptionTier } from "@prisma/client";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
+interface RazorpayButtonProps {
+    tier?: SubscriptionTier;
+    courseId?: string;
+    price?: number;
+    label: string;
+    className?: string;
+    children?: React.ReactNode;
+}
+
+export default function RazorpayButton({ tier, courseId, price, label, className, children }: RazorpayButtonProps) {
+    const [isLoading, setIsLoading] = useState(false);
+    const { data: session } = useSession();
+    const pathname = usePathname();
+    const router = useRouter();
+
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+    const handlePayment = async () => {
+        if (!session) {
+            toast.error("Please login to continue with the purchase");
+            router.push(`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`);
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const result = await createRazorpayOrder({ tier, courseId });
+
+            if (!result.success || !result.data) {
+                toast.error(result.error || "Failed to initiate payment");
+                return;
+            }
+
+            const { data: order } = result;
+
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use public key here
+                amount: order.amount,
+                currency: order.currency,
+                name: "LoomGrad",
+                description: order.description || (tier ? `Subscription for ${tier} plan` : "Course Purchase"),
+                order_id: order.id,
+                handler: async function (response: any) {
+                    try {
+                        const verifyResult = await verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            tier: tier,
+                            courseId: courseId
+                        });
+
+                        if (verifyResult.success) {
+                            toast.success(tier
+                                ? "Payment Successful! Your subscription is now active."
+                                : "Payment Successful! Course unlocked successfully."
+                            );
+                            // Refresh or redirect
+                            window.location.reload();
+                        } else {
+                            toast.error(verifyResult.error || "Payment verification failed.");
+                        }
+                    } catch (error) {
+                        console.error("Verification failed:", error);
+                        toast.error("Payment was successful but verification failed. It may take a few minutes to activate.");
+                    }
+                },
+                prefill: {
+                    name: "", // Can be fetched from session if needed
+                    email: "",
+                },
+                theme: {
+                    color: "#2563eb",
+                },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on("payment.failed", function (response: any) {
+                toast.error("Payment failed. Please try again.");
+                console.error("Payment failed:", response.error);
+            });
+            rzp.open();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to initiate payment");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <button
+            onClick={handlePayment}
+            disabled={isLoading}
+            className={className}
+        >
+            {isLoading ? (
+                <div className="flex items-center justify-center w-full">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                </div>
+            ) : (
+                children || label
+            )}
+        </button>
+    );
+}
