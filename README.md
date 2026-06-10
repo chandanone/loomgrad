@@ -4,6 +4,10 @@
 
 🌐 Live Demo: https://loomgrad.vercel.app/
 
+📷 **Screenshots:** [Landing](#-landing-page) | [Admin Dashboard](#-admin-dashboard) | [Playlist to Course](#-youtube-playlist-to-course) | [Course Interface](#-course-learning-interface) | [Details](#-course-details) | [Settings](#-course-settings) | [Challenge](#-ibps-challenge-assessment) | [Payments](#-course-enrolment--payments)
+
+![LoomGrad Landing](screenshots/landing.png)
+
 ## Problem
 
 Millions of learners consume educational content through YouTube playlists, but playlists lack:
@@ -79,6 +83,34 @@ Features:
 * User management
 * Enrollment monitoring
 * Revenue tracking
+
+---
+
+## Screenshots
+
+### 💻 Landing Page
+![Landing Page](screenshots/landing.png)
+
+### 📊 Admin Dashboard
+![Admin Dashboard](screenshots/admin-dashboard.png)
+
+### 🔄 YouTube Playlist to Course
+![Playlist to Course Converter](screenshots/playlist-to-course.png)
+
+### 📖 Course Learning Interface
+![Course View](screenshots/course.png)
+
+### 🔍 Course Details
+![Course Details](screenshots/course-details.png)
+
+### ⚙️ Course Settings
+![Course Settings](screenshots/course-settings.png)
+
+### 📝 IBPS Challenge Assessment
+![IBPS Test](screenshots/ibps-test.png)
+
+### 💳 Course Enrolment & Payments
+![Subscription](screenshots/subscription.png)
 
 ---
 
